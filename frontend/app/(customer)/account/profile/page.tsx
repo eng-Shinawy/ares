@@ -1,133 +1,90 @@
-import { Metadata } from "next";
-import { notFound } from "next/navigation";
-
-// Import Utils
-import { fetchData } from "@/src/utils/api-client";
-
-// Import Components
+import React from "react";
 import ProfileHeader from "./_components/ProfileHeader";
 import PersonalInfoForm from "./_components/PersonalInfoForm";
 import AddressForm from "./_components/AddressForm";
-import VerificationStatus from "./_components/VerificationStatus";
 import PreferencesSection from "./_components/PreferencesSection";
-
-export const metadata: Metadata = {
-  title: "My Profile | Account",
-  description: "Manage your personal information, security, and preferences.",
-};
-
-// تعريف شكل البيانات اللي جاية من الـ API (ده اللي كان ضايع مننا)
-interface UserProfile {
-  userId: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  emailVerified: boolean;
-  phone: string;
-  phoneVerified: boolean;
-  dateOfBirth: string;
-  profilePhotoUrl: string;
-  address: {
-    street: string;
-    city: string;
-    state: string;
-    postalCode: string;
-    country: string;
-  };
-  emergencyContact: {
-    name: string;
-    phone: string;
-    relationship: string;
-  };
-  languagePreference: string;
-  currencyPreference: string;
-  profileCompleteness: number;
-  verificationStatus: {
-    email: boolean;
-    phone: boolean;
-    driverLicense: boolean;
-    kyc: "none" | "basic" | "standard" | "enhanced";
-  };
-}
+import VerificationStatus from "./_components/VerificationStatus";
 
 export default async function ProfilePage() {
-  let profile: UserProfile;
+  const currentUserId = "user-123"; 
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+  let profileData = null;
 
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
-    
-    // ملاحظة: هنا بنفترض إنك بتجيب الـ userId من الـ Session أو الـ Token
-    const currentUserId = "123-uuid-placeholder";
-    
-    profile = await fetchData<UserProfile>(`${baseUrl}/api/users/${currentUserId}/profile`);
+    const response = await fetch(`${baseUrl}/api/users/${currentUserId}/profile`, {
+      cache: 'no-store'
+    });
+    if (response.ok) {
+      profileData = await response.json();
+    }
   } catch (error) {
-    console.error("Failed to fetch profile data:", error);
-    notFound(); // لو مفيش داتا، وديه لصفحة 404
+    console.error("Failed to fetch profile:", error);
   }
 
+  const safeData = profileData || {
+    userId: currentUserId,
+    firstName: "Mohamed",
+    lastName: "Elshinawy",
+    email: "mohamed@example.com",
+    phone: "01000000000",
+    profileCompleteness: 75,
+    address: {},
+    emergencyContact: {},
+    verificationStatus: { email: true, phone: false, driverLicense: false }
+  };
+
   return (
-    <main className="min-h-screen bg-[#F8FAFC] pb-20 pt-8">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    // 1. الديف الأب: واخد خلفية ناعمة جداً للصفحة كلها
+    <div className="min-h-screen bg-slate-50 py-8 dark:bg-slate-950 md:py-12">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         
-        {/* عنوان الصفحة */}
+        {/* 2. عنوان الصفحة عشان يدي طابع احترافي */}
         <div className="mb-8">
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Account Settings</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Manage your profile details, security preferences, and account verification.
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">Account Settings</h1>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Manage your personal information, security, and preferences.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-y-8 lg:grid-cols-12 lg:gap-x-10">
+        {/* 3. الجريد: متقسم 12 عمود لمرونة أكتر */}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           
-          {/* LEFT COLUMN - 8 Columns */}
-          <div className="lg:col-span-8 space-y-8">
-            {/* كارت البيانات الشخصية */}
-            <section className="rounded-3xl border border-slate-200/60 bg-white p-8 shadow-sm transition-shadow hover:shadow-md">
-              <PersonalInfoForm initialData={profile} />
-            </section>
-
-            {/* كارت العنوان والطوارئ */}
-            <section className="rounded-3xl border border-slate-200/60 bg-white p-8 shadow-sm transition-shadow hover:shadow-md">
-              <AddressForm
-                address={profile.address}
-                emergencyContact={profile.emergencyContact}
+          {/* العمود اللي على الشمال (بياخد 4 أعمدة من الـ 12) */}
+          <div className="space-y-6 lg:col-span-4">
+            {/* الكروت هنا واخده ستايل موحد: خلفية بيضا، شادو ناعم، وبوردر خفيف */}
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+              <ProfileHeader 
+                userId={safeData.userId}
+                photoUrl={safeData.profilePhotoUrl}
+                firstName={safeData.firstName}
+                lastName={safeData.lastName}
+                email={safeData.email}
+                completeness={safeData.profileCompleteness}
               />
-            </section>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+              <VerificationStatus status={safeData.verificationStatus} />
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+              <PreferencesSection fullData={safeData} />
+            </div>
           </div>
 
-          {/* RIGHT COLUMN - 4 Columns */}
-          <div className="lg:col-span-4">
-            <aside className="sticky top-8 space-y-6">
-              
-              {/* كارت الصورة الشخصية ونسبة الاكتمال */}
-              <div className="overflow-hidden rounded-3xl border border-slate-200/60 bg-white shadow-sm">
-                <ProfileHeader
-                  photoUrl={profile.profilePhotoUrl}
-                  firstName={profile.firstName}
-                  lastName={profile.lastName}
-                  email={profile.email}
-                  completeness={profile.profileCompleteness}
-                />
-              </div>
+          {/* العمود اللي على اليمين (بياخد 8 أعمدة من الـ 12 - مساحة أكبر للفورم) */}
+          <div className="space-y-6 lg:col-span-8">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+              <PersonalInfoForm fullData={safeData} />
+            </div>
 
-              {/* كارت حالة التوثيق (Verification) */}
-              <div className="overflow-hidden rounded-3xl border border-slate-200/60 bg-white shadow-sm">
-                <VerificationStatus status={profile.verificationStatus} />
-              </div>
-
-              {/* كارت التفضيلات (اللغة والعملة) */}
-              <div className="overflow-hidden rounded-3xl border border-slate-200/60 bg-white shadow-sm">
-                <PreferencesSection
-                  language={profile.languagePreference}
-                  currency={profile.currencyPreference}
-                />
-              </div>
-
-            </aside>
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+              <AddressForm fullData={safeData} />
+            </div>
           </div>
 
         </div>
       </div>
-    </main>
+    </div>
   );
 }
