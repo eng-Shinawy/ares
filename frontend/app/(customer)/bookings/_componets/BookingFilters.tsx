@@ -11,32 +11,22 @@ const ALL_STATUSES = ["Pending", "Deposit", "Paid", "Reserved", "Cancelled"];
 
 export default function BookingFilters({ onFilterChange }: Readonly<BookingFiltersProps>) {
   const [keyword, setKeyword] = useState<string>("");
-  const [activeStatuses, setActiveStatuses] = useState<string[]>([...ALL_STATUSES]);
+  
+  // ✨ التعديل هنا: الـ State بقت بتحفظ حالة واحدة بس، والافتراضي بتاعها "All"
+  const [selectedStatus, setSelectedStatus] = useState<string>("All");
 
-  // Toggle a single status on or off
-  const toggleStatus = (status: string) => {
-    setActiveStatuses((prev) => {
-      if (prev.includes(status)) {
-        // If it's the last one, don't allow unchecking (must have at least one filter)
-        if (prev.length === 1) return prev;
-        return prev.filter((s) => s !== status);
-      }
-      return [...prev, status];
-    });
-  };
-
-  // Trigger the filter change to the parent component whenever state changes
   useEffect(() => {
-    // We use a small delay (debounce) for the keyword to avoid spamming the API while typing
     const delayDebounceFn = setTimeout(() => {
-      onFilterChange(activeStatuses, keyword);
+      // بنجهز الداتا للباك إند: لو دايس "All" نبعت المصفوفة كلها، لو دايس حاجة تانية نبعتها لوحدها
+      const statusesToFetch = selectedStatus === "All" ? ALL_STATUSES : [selectedStatus];
+      onFilterChange(statusesToFetch, keyword);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [keyword, activeStatuses, onFilterChange]);
+  }, [keyword, selectedStatus, onFilterChange]);
 
   return (
-    <div className="flex flex-col gap-6 rounded-3xl bg-white/70 p-6 backdrop-blur-sm border border-slate-100 shadow-sm md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col gap-6 rounded-3xl border border-slate-100 bg-white/70 p-6 shadow-sm backdrop-blur-sm transition-colors dark:border-slate-800 dark:bg-slate-900/70 md:flex-row md:items-center md:justify-between">
       
       {/* Search Input */}
       <div className="relative w-full md:max-w-xs">
@@ -48,23 +38,39 @@ export default function BookingFilters({ onFilterChange }: Readonly<BookingFilte
           placeholder="Search cars or locations..."
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm font-medium text-slate-800 transition-all placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-600/10"
+          className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm font-medium text-slate-800 transition-all placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-600/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-indigo-500"
         />
       </div>
 
-      {/* Status Filter Buttons */}
+      {/* Status Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-2 text-sm font-bold text-slate-500">Status:</span>
+        <span className="mr-2 text-sm font-bold text-slate-500 dark:text-slate-400">Status:</span>
+        
+        {/* زرار "All" */}
+        <button
+          onClick={() => setSelectedStatus("All")}
+          className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${
+            selectedStatus === "All"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:bg-indigo-500 dark:shadow-indigo-900/50"
+              : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+          }`}
+        >
+          All
+        </button>
+
+        {/* باقي الزراير بتترسم لوب */}
         {ALL_STATUSES.map((status) => {
-          const isActive = activeStatuses.includes(status);
+          // الزرار بينور بس لو اسمه هو نفس الـ State الحالية
+          const isActive = selectedStatus === status;
+          
           return (
             <button
               key={status}
-              onClick={() => toggleStatus(status)}
+              onClick={() => setSelectedStatus(status)}
               className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${
                 isActive
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
-                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:bg-indigo-500 dark:shadow-indigo-900/50"
+                  : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
               }`}
             >
               {status}
