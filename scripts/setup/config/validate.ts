@@ -60,7 +60,10 @@ export async function parseEnvFile(filePath: string): Promise<Record<string, str
     const match = /^([^=]+)=(.*)$/.exec(trimmed);
     if (match) {
       const key = match[1]?.trim();
-      const value = match[2]?.trim();
+      let value = match[2]?.trim();
+      if (value) {
+        value = value.replace(/\\\\/g, "\\");
+      }
       if (key && value !== undefined) {
         env[key] = value;
       }

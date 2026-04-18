@@ -147,10 +147,13 @@ function Ensure-DbHostResolves {
     if (-not $match.Success) { return $true }
 
     $hostName = $match.Groups[1].Value
-    if ($hostName -in @('localhost', '127.0.0.1', '.')) { return $true }
+    # If using a named instance (e.g., Host\Instance), extract just the Host part
+    $dnsHostName = $hostName -replace '\\.*$', ''
+    
+    if ($dnsHostName -in @('localhost', '127.0.0.1', '.')) { return $true }
 
     try {
-        [System.Net.Dns]::GetHostAddresses($hostName) | Out-Null
+        [System.Net.Dns]::GetHostAddresses($dnsHostName) | Out-Null
         return $true
     } catch {
         Write-Host "Database host '$hostName' is not resolvable from this environment."
