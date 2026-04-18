@@ -416,7 +416,7 @@ function SuccessView({ firstName, email }: SuccessViewProps) {
         Account Created!
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Welcome to ARES, {firstName}. We&apos;ve sent a verification link to <strong>{email}</strong>.
+        Welcome to ARES, {firstName}. Your account has been created successfully and you can now log in.
       </Typography>
       <Button
         component={Link}

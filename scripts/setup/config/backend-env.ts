@@ -229,7 +229,11 @@ export async function promptBackendConfig(
 export function buildConnectionString(config: BackendEnvConfig): string {
   const parts: string[] = [];
   
-  if (config.dbPort > 0) {
+  // Named instances (containing a backslash) usually don't use a static port in the connection string
+  // they resolve dynamically via SQL Browser
+  const isNamedInstance = config.dbHost.includes("\\");
+  
+  if (config.dbPort > 0 && !isNamedInstance) {
     parts.push(`Server=${config.dbHost},${String(config.dbPort)}`);
   } else {
     parts.push(`Server=${config.dbHost}`);
