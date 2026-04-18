@@ -53,7 +53,7 @@ public class AuthService : IAuthService
             Email = request.Email,
             FirstName = request.FirstName,
             LastName = request.LastName,
-            EmailConfirmed = false
+            EmailConfirmed = true // Automatically confirmed for now since email sending isn't implemented
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
@@ -72,7 +72,7 @@ public class AuthService : IAuthService
         // Assign default Customer role
         await _userManager.AddToRoleAsync(user, "Customer");
 
-        // Generate email confirmation token
+        // Generate email confirmation token (kept for future use)
         var emailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         
         // TODO: Send email verification email with token
@@ -81,8 +81,8 @@ public class AuthService : IAuthService
         return new AuthResponse(
             UserId: user.Id,
             Email: user.Email!,
-            EmailVerified: false,
-            Message: "Registration successful. Please check your email to verify your account."
+            EmailVerified: true,
+            Message: "Registration successful. You can now log in."
         );
     }
 
