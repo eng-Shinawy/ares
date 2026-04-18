@@ -14,7 +14,7 @@ export const emailSchema = z.string().email();
 
 export const connectionStringSchema = z
   .string()
-  .regex(/Server=.+;Database=.+;User=.+;Password=.+/, "Invalid SQL Server connection string format");
+  .regex(/Server=.+;Database=.+/, "Invalid SQL Server connection string format");
 
 export function validateUrl(url: string): boolean {
   return urlSchema.safeParse(url).success;

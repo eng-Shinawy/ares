@@ -1,6 +1,8 @@
 import { $ } from "bun";
 import { logDebug } from "./logger";
 import { commandExists } from "./utils";
+import * as os from "node:os";
+import * as path from "node:path";
 
 export interface ConnectionInfo {
   server: string;
@@ -63,11 +65,10 @@ try {
     Console.WriteLine($"SUCCESS:{version?.ToString() ?? "Unknown"}");
 } catch (Exception ex) {
     Console.WriteLine($"ERROR:{ex.Message}");
-    Environment.Exit(1);
 }
 `;
 
-    const tempFile = `/tmp/test-sql-${Date.now().toString()}.csx`;
+    const tempFile = path.join(os.tmpdir(), `test-sql-${Date.now().toString()}.csx`);
     await Bun.write(tempFile, testProgram);
 
     logDebug(`Testing SQL connection with temp file: ${tempFile}`);
@@ -111,11 +112,10 @@ try {
     Console.WriteLine($"SUCCESS:{result?.ToString() ?? ""}");
 } catch (Exception ex) {
     Console.WriteLine($"ERROR:{ex.Message}");
-    Environment.Exit(1);
 }
 `;
 
-    const tempFile = `/tmp/exec-sql-${Date.now().toString()}.csx`;
+    const tempFile = path.join(os.tmpdir(), `exec-sql-${Date.now().toString()}.csx`);
     await Bun.write(tempFile, testProgram);
 
     logDebug(`Executing SQL query: ${query}`);
@@ -161,11 +161,10 @@ try {
     }
 } catch (Exception ex) {
     Console.WriteLine($"ERROR:{ex.Message}");
-    Environment.Exit(1);
 }
 `;
 
-    const tempFile = `/tmp/exec-sql-rows-${Date.now().toString()}.csx`;
+    const tempFile = path.join(os.tmpdir(), `exec-sql-rows-${Date.now().toString()}.csx`);
     await Bun.write(tempFile, testProgram);
 
     logDebug(`Executing SQL rows query: ${query}`);

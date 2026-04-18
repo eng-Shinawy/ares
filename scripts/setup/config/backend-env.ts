@@ -13,6 +13,7 @@ export interface BackendEnvConfig {
   dbHost: string;
   dbPort: number;
   dbName: string;
+  dbIntegratedSecurity: boolean;
   dbUser: string;
   dbPassword: string;
   dbTrustServerCertificate: boolean;
@@ -55,6 +56,7 @@ export function getDefaultBackendConfig(isDevcontainer = false): BackendEnvConfi
     dbHost: isDevcontainer ? "mssql" : "localhost",
     dbPort: 1433,
     dbName: "AresCarRental",
+    dbIntegratedSecurity: false,
     dbUser: "sa",
     dbPassword: "YourPassword123!",
     dbTrustServerCertificate: true,
@@ -115,9 +117,9 @@ export async function promptBackendConfig(
     {
       type: "number",
       name: "dbPort",
-      message: "Database port",
+      message: "Database port (0 to skip)",
       initial: defaults.dbPort,
-      min: 1,
+      min: 0,
       max: 65535,
     },
     {
@@ -127,13 +129,19 @@ export async function promptBackendConfig(
       initial: defaults.dbName,
     },
     {
-      type: "text",
+      type: "confirm",
+      name: "dbIntegratedSecurity",
+      message: "Use Windows Authentication (Integrated Security)?",
+      initial: defaults.dbIntegratedSecurity,
+    },
+    {
+      type: (prev, values) => values.dbIntegratedSecurity ? null : "text",
       name: "dbUser",
       message: "Database user",
       initial: defaults.dbUser,
     },
     {
-      type: "password",
+      type: (prev, values) => values.dbIntegratedSecurity ? null : "password",
       name: "dbPassword",
       message: "Database password",
       initial: defaults.dbPassword,
@@ -196,11 +204,13 @@ export async function promptBackendConfig(
 
   const config: BackendEnvConfig = {
     ...defaults,
-    dbHost: response.dbHost as string,
+    // Sanitize dbHost to ensure single backslashes for named instances
+    dbHost: (response.dbHost as string).replace(/\\\\/g, "\\"),
     dbPort: response.dbPort as number,
     dbName: response.dbName as string,
-    dbUser: response.dbUser as string,
-    dbPassword: response.dbPassword as string,
+    dbIntegratedSecurity: response.dbIntegratedSecurity as boolean,
+    dbUser: response.dbUser as string ?? "",
+    dbPassword: response.dbPassword as string ?? "",
     jwtSecret: response.jwtSecret as string,
     jwtIssuer: response.jwtIssuer as string,
     jwtAudience: response.jwtAudience as string,
@@ -217,14 +227,25 @@ export async function promptBackendConfig(
  * Build connection string from config
  */
 export function buildConnectionString(config: BackendEnvConfig): string {
-  const parts = [
-    `Server=${config.dbHost},${String(config.dbPort)}`,
-    `Database=${config.dbName}`,
-    `User=${config.dbUser}`,
-    `Password=${config.dbPassword}`,
-    `TrustServerCertificate=True`,
-    `Encrypt=false`,
-  ];
+  const parts: string[] = [];
+  
+  if (config.dbPort > 0) {
+    parts.push(`Server=${config.dbHost},${String(config.dbPort)}`);
+  } else {
+    parts.push(`Server=${config.dbHost}`);
+  }
+  
+  parts.push(`Database=${config.dbName}`);
+  
+  if (config.dbIntegratedSecurity) {
+    parts.push(`Integrated Security=True`);
+  } else {
+    parts.push(`User=${config.dbUser}`);
+    parts.push(`Password=${config.dbPassword}`);
+  }
+  
+  parts.push(`TrustServerCertificate=${config.dbTrustServerCertificate ? 'True' : 'False'}`);
+  parts.push(`Encrypt=${config.dbEncrypt ? 'True' : 'False'}`);
 
   return parts.join(";");
 }
