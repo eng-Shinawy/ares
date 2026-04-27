@@ -1,4 +1,4 @@
-import React from 'react';
+
 import VerifyEmailClient from './VerifyEmailClient';
 
 export default async function VerifyEmailPage({

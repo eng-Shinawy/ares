@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Box, Typography, Button, CircularProgress, Alert } from "@mui/material";
 import Link from "next/link";
 import { CheckCircle as CheckCircleIcon, ErrorOutline as ErrorIcon } from "@mui/icons-material";
