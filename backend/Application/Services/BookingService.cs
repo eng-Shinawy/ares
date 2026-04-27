@@ -494,8 +494,11 @@ public class BookingService : IBookingService
             }
         }
 
-        _context.Bookings.RemoveRange(bookings);
-        await _context.SaveChangesAsync(cancellationToken);
+        foreach (var booking in bookings)
+        {
+            await _bookingRepository.DeleteAsync(booking, cancellationToken);
+        }
+        await _bookingRepository.SaveChangesAsync(cancellationToken);
 
         return true;
     }
