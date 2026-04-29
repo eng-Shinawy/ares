@@ -29,7 +29,7 @@ Fetch a paginated, filtered list of bookings.
   "suppliers": ["string (_id)"],
   "statuses": ["Pending", "Deposit", "Paid", "Reserved", "Cancelled"],
   "user": "string | null",
-  "car": "string | null",
+  "carId": "string | null",
   "filter": {
     "from": "string (ISO 8601) | null",
     "to": "string (ISO 8601) | null",
