@@ -1,7 +1,236 @@
-export default function AdminEditCarPage() {
+"use client";
+
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Card,
+  Typography,
+  TextField,
+  Button,
+  Grid,
+  Stack,
+  CircularProgress,
+  MenuItem,
+  Alert,
+  alpha,
+  useTheme,
+  InputAdornment
+} from "@mui/material";
+
+import { useSession } from "next-auth/react";
+import { useRouter, useParams } from "next/navigation";
+import { updateCar } from "@/app/api/cars/cars";
+import { createCarSchema } from "../../create/page";
+
+
+export default function EditCarPage() {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const { id } = useParams();
+  const theme = useTheme();
+
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+  const [apiError, setApiError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<any>({});
+
+  const [form, setForm] = useState({
+    make: "",
+    model: "",
+    year: 2024,
+    color: "",
+    licensePlate: "",
+    transmission: "Automatic",
+    fuelType: "Gasoline",
+    seats: 4,
+    pricePerDay: 0,
+    locationCity: "",
+    description: "",
+    status: "Active",
+    availabilityStatus: "Available"
+  });
+
+  // Load car data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getCarById(session?.accessToken!, id as string);
+        setForm(data);
+      } catch (err) {
+        setApiError("Failed to load car data");
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    if (session?.accessToken && id) fetchData();
+  }, [session, id]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: ["year", "seats", "pricePerDay"].includes(name)
+        ? Number(value)
+        : value
+    }));
+    setFieldErrors((prev: any) => ({ ...prev, [name]: "" }));
+  };
+
+  const handleSubmit = async () => {
+    const result = createCarSchema.safeParse(form);
+
+    if (!result.success) {
+      const errors = result.error.flatten().fieldErrors;
+      const simplified: any = {};
+
+      Object.keys(errors).forEach((key) => {
+        simplified[key] = errors[key as keyof typeof errors]?.[0];
+      });
+
+      setFieldErrors(simplified);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setApiError("");
+
+      await updateCar(session?.accessToken!, id as string, form);
+
+      router.push("/admin/cars");
+    } catch (err: any) {
+      setApiError(err.message || "Error updating car");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loadingData) {
+    return (
+      <Box display="flex" justifyContent="center" mt={10}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
-    <main>
-      <h1>Admin — Edit Car</h1>
-    </main>
+    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1000, mx: "auto" }}>
+      <Stack mb={4}>
+        <Typography variant="h4" fontWeight={800}>
+          Edit Vehicle
+        </Typography>
+        <Typography color="text.secondary">
+          Update vehicle information
+        </Typography>
+      </Stack>
+
+      <Card sx={{ p: { xs: 2, md: 4 }, borderRadius: 4 }}>
+        <Grid container spacing={3}>
+          
+          {/* SAME UI FIELDS (UNCHANGED) */}
+          
+          <Grid item xs={12} sm={6}>
+            <TextField fullWidth label="Make (Brand)" name="make"
+              value={form.make} onChange={handleChange}
+              error={!!fieldErrors.make} helperText={fieldErrors.make}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField fullWidth label="Model" name="model"
+              value={form.model} onChange={handleChange}
+              error={!!fieldErrors.model} helperText={fieldErrors.model}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <TextField fullWidth type="number" label="Year" name="year"
+              value={form.year} onChange={handleChange}
+              error={!!fieldErrors.year} helperText={fieldErrors.year}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <TextField fullWidth label="Color" name="color"
+              value={form.color} onChange={handleChange}
+              error={!!fieldErrors.color} helperText={fieldErrors.color}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <TextField fullWidth label="License Plate" name="licensePlate"
+              value={form.licensePlate} onChange={handleChange}
+              error={!!fieldErrors.licensePlate} helperText={fieldErrors.licensePlate}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField select fullWidth label="Transmission"
+              name="transmission" value={form.transmission}
+              onChange={handleChange}
+            >
+              <MenuItem value="Automatic">Automatic</MenuItem>
+              <MenuItem value="Manual">Manual</MenuItem>
+            </TextField>
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField select fullWidth label="Fuel Type"
+              name="fuelType" value={form.fuelType}
+              onChange={handleChange}
+            >
+              <MenuItem value="Gasoline">Gasoline</MenuItem>
+              <MenuItem value="Diesel">Diesel</MenuItem>
+              <MenuItem value="Electric">Electric</MenuItem>
+            </TextField>
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <TextField fullWidth type="number" label="Seats"
+              name="seats" value={form.seats}
+              onChange={handleChange}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <TextField fullWidth type="number" label="Price Per Day"
+              name="pricePerDay" value={form.pricePerDay}
+              onChange={handleChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">$</InputAdornment>
+                )
+              }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <TextField fullWidth label="City"
+              name="locationCity" value={form.locationCity}
+              onChange={handleChange}
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <TextField fullWidth multiline rows={3}
+              label="Description" name="description"
+              value={form.description} onChange={handleChange}
+            />
+          </Grid>
+
+        </Grid>
+
+        <Stack direction="row" spacing={2} mt={5} justifyContent="flex-end">
+          <Button onClick={() => router.push("/admin/cars")} variant="outlined">
+            Cancel
+          </Button>
+
+          <Button onClick={handleSubmit} variant="contained" disabled={loading}>
+            {loading ? <CircularProgress size={24} /> : "Update Vehicle"}
+          </Button>
+        </Stack>
+      </Card>
+    </Box>
   );
 }

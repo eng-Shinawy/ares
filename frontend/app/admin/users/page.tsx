@@ -136,65 +136,71 @@ export default function UsersPage() {
   );
 
   return (
-    <Box sx={{ p: 4, maxWidth: 1300, mx: "auto" }}>
+    <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: 1300, mx: "auto" }}>
       {/* HEADER */}
-    <Stack direction="row" justifyContent="space-between" mb={4} alignItems="center">
-  <Box>
-    <Typography variant="h4" fontWeight={800}>
-      Users Directory
-    </Typography>
-    <Typography color="text.secondary">
-      Manage platform users
-    </Typography>
-  </Box>
-
-  {/* ACTION BUTTON */}
-  <Stack direction="row" spacing={2}>
-    <Link href="/admin/users/create" style={{ textDecoration: "none" }}>
-      <Box
-        sx={{
-          px: 2.5,
-          py: 1.2,
-          borderRadius: 3,
-          fontWeight: 700,
-          color: "#fff",
-          background: (theme) =>
-            `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-          boxShadow: 3,
-          display: "flex",
-          alignItems: "center",
-          gap: 1,
-          transition: "0.2s",
-          "&:hover": {
-            transform: "translateY(-2px)",
-            boxShadow: 6
-          }
-        }}
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        justifyContent="space-between"
+        alignItems={{ xs: "flex-start", sm: "center" }}
+        gap={2}
+        mb={4}
       >
-        + Add New User
-      </Box>
-    </Link>
-  </Stack>
-</Stack>
-      
+        <Box>
+          <Typography variant="h4" fontWeight={800}>
+            Users Directory
+          </Typography>
+          <Typography color="text.secondary">
+            Manage platform users
+          </Typography>
+        </Box>
+
+        {/* ACTION BUTTON */}
+        <Stack direction="row" spacing={2}>
+          <Link href="/admin/users/create" style={{ textDecoration: "none" }}>
+            <Box
+              sx={{
+                px: 2.5,
+                py: 1.2,
+                borderRadius: 3,
+                fontWeight: 700,
+                color: "#fff",
+                background: (theme) =>
+                  `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                boxShadow: 3,
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                transition: "0.2s",
+                whiteSpace: "nowrap",
+                "&:hover": {
+                  transform: "translateY(-2px)",
+                  boxShadow: 6
+                }
+              }}
+            >
+              + Add New User
+            </Box>
+          </Link>
+        </Stack>
+      </Stack>
 
       {/* STATS */}
       <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={4}>
           <StatCard
             label="Total Users"
             value={totalUsers}
             color={theme.palette.primary.main}
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={4}>
           <StatCard
             label="Active Users"
             value={activeUsers}
             color={theme.palette.success.main}
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={4}>
           <StatCard
             label="Blocked Users"
             value={blockedUsers}
@@ -204,7 +210,11 @@ export default function UsersPage() {
       </Grid>
 
       {/* FILTER */}
-      <Stack direction="row" spacing={2} mb={3}>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
+        mb={3}
+      >
         <TextField
           fullWidth
           placeholder="Search..."
@@ -219,7 +229,7 @@ export default function UsersPage() {
           }}
         />
 
-        <FormControl sx={{ minWidth: 160 }}>
+        <FormControl sx={{ minWidth: { xs: "100%", sm: 160 } }}>
           <Select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -239,116 +249,156 @@ export default function UsersPage() {
       ) : (
         <Paper sx={{ borderRadius: 3 }}>
           <TableContainer>
-            <Table>
+            <Table sx={{ minWidth: { xs: 0, sm: 500 } }}>
               <TableHead>
                 <TableRow>
                   <TableCell>User</TableCell>
-                  <TableCell>Contact</TableCell>
+                  {/* Hide Contact column on xs */}
+                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                    Contact
+                  </TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
 
-            <TableBody>
-  {pageData.length > 0 ? (
-    pageData.map((u) => {
-      const status = (u.status || "").toLowerCase();
-      const isActive = status === "active";
+              <TableBody>
+                {pageData.length > 0 ? (
+                  pageData.map((u) => {
+                    const status = (u.status || "").toLowerCase();
+                    const isActive = status === "active";
 
-      return (
-        <TableRow key={u.id} hover>
-          {/* USER */}
-          <TableCell>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Avatar sx={{ bgcolor: theme.palette.primary.light, fontWeight: 700 }}>
-                {u.firstName?.[0]}
-                {u.lastName?.[0]}
-              </Avatar>
-              <Box>
-                <Typography fontWeight={600}>
-                  {u.firstName} {u.lastName}
-                </Typography>
-              </Box>
-            </Stack>
-          </TableCell>
+                    return (
+                      <TableRow key={u.id} hover>
+                        {/* USER */}
+                        <TableCell>
+                          <Stack direction="row" spacing={2} alignItems="center">
+                            <Avatar
+                              sx={{
+                                bgcolor: theme.palette.primary.light,
+                                fontWeight: 700,
+                                width: { xs: 32, sm: 40 },
+                                height: { xs: 32, sm: 40 },
+                                fontSize: { xs: 13, sm: 16 }
+                              }}
+                            >
+                              {u.firstName?.[0]}
+                              {u.lastName?.[0]}
+                            </Avatar>
+                            <Box>
+                              <Typography fontWeight={600} fontSize={{ xs: 13, sm: 15 }}>
+                                {u.firstName} {u.lastName}
+                              </Typography>
+                              {/* Show email under name on xs (since Contact column is hidden) */}
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ display: { xs: "block", sm: "none" } }}
+                              >
+                                {u.email}
+                              </Typography>
+                            </Box>
+                          </Stack>
+                        </TableCell>
 
-          {/* CONTACT */}
-          <TableCell>{u.email}</TableCell>
+                        {/* CONTACT — hidden on xs */}
+                        <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                          {u.email}
+                        </TableCell>
 
-          {/* STATUS */}
-          <TableCell>
-            <Chip
-              label={status}
-              sx={{
-                textTransform: "capitalize",
-                bgcolor: isActive
-                  ? alpha(theme.palette.success.main, 0.15)
-                  : alpha(theme.palette.error.main, 0.15),
-                color: isActive
-                  ? theme.palette.success.main
-                  : theme.palette.error.main,
-                fontWeight: 700
-              }}
-            />
-          </TableCell>
+                        {/* STATUS */}
+                        <TableCell>
+                          <Chip
+                            label={status}
+                            size="small"
+                            sx={{
+                              textTransform: "capitalize",
+                              bgcolor: isActive
+                                ? alpha(theme.palette.success.main, 0.15)
+                                : alpha(theme.palette.error.main, 0.15),
+                              color: isActive
+                                ? theme.palette.success.main
+                                : theme.palette.error.main,
+                              fontWeight: 700,
+                              fontSize: { xs: 11, sm: 13 }
+                            }}
+                          />
+                        </TableCell>
 
-          {/* ACTIONS */}
-          <TableCell align="right">
-            <Stack direction="row" justifyContent="flex-end" spacing={1}>
-              <Tooltip title="View">
-                <IconButton component={Link} href={`/admin/users/${u.id}`}>
-                  <VisibilityOutlinedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+                        {/* ACTIONS */}
+                        <TableCell align="right">
+                          <Stack direction="row" justifyContent="flex-end" spacing={0.5}>
+                            <Tooltip title="View">
+                              <IconButton
+                                component={Link}
+                                href={`/admin/users/${u.id}`}
+                                size="small"
+                              >
+                                <VisibilityOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
 
-              <Tooltip title="Edit">
-                <IconButton component={Link} href={`/admin/users/${u.id}/edit`}>
-                  <EditOutlinedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+                            {/* Hide Edit on xs to save space */}
+                            <Tooltip title="Edit">
+                              <IconButton
+                                component={Link}
+                                href={`/admin/users/${u.id}/edit`}
+                                size="small"
+                                sx={{ display: { xs: "none", sm: "inline-flex" } }}
+                              >
+                                <EditOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
 
-              <Tooltip title={isActive ? "Block User" : "Activate User"}>
-                <IconButton
-                  onClick={async () => {
-                    await toggleUserStatus(u.id);
-                    fetchUsers();
-                  }}
-                  sx={{
-                    color: isActive ? "error.main" : "success.main"
-                  }}
-                >
-                  {isActive ? <BlockIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
-                </IconButton>
-              </Tooltip>
-            </Stack>
-          </TableCell>
-        </TableRow>
-      );
-    })
-  ) : (
-    /* ── EMPTY STATE ────────────────────────── */
-    <TableRow>
-      <TableCell colSpan={4} align="center" sx={{ py: 10 }}>
-        <Box sx={{ textAlign: "center", opacity: 0.6 }}>
-          <SearchIcon sx={{ fontSize: 60, mb: 2, color: "text.disabled" }} />
-          <Typography variant="h6" fontWeight={700} color="text.secondary">
-            No users found
-          </Typography>
-          <Typography variant="body2" color="text.disabled">
-            Try adjusting your search or filters to find what you're looking for.
-          </Typography>
-        </Box>
-      </TableCell>
-    </TableRow>
-  )}
-</TableBody>
+                            <Tooltip title={isActive ? "Block User" : "Activate User"}>
+                              <IconButton
+                                size="small"
+                                onClick={async () => {
+                                  await toggleUserStatus(u.id);
+                                  fetchUsers();
+                                }}
+                                sx={{
+                                  color: isActive ? "error.main" : "success.main"
+                                }}
+                              >
+                                {isActive ? (
+                                  <BlockIcon fontSize="small" />
+                                ) : (
+                                  <CheckCircleIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  /* ── EMPTY STATE ────────────────────────── */
+                  <TableRow>
+                    <TableCell colSpan={4} align="center" sx={{ py: 10 }}>
+                      <Box sx={{ textAlign: "center", opacity: 0.6 }}>
+                        <SearchIcon sx={{ fontSize: 60, mb: 2, color: "text.disabled" }} />
+                        <Typography variant="h6" fontWeight={700} color="text.secondary">
+                          No users found
+                        </Typography>
+                        <Typography variant="body2" color="text.disabled">
+                          Try adjusting your search or filters to find what you're looking for.
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
             </Table>
           </TableContainer>
 
           {/* PAGINATION */}
           <Stack
-            direction="row"
+            direction={{ xs: "column", sm: "row" }}
             justifyContent="space-between"
+            alignItems={{ xs: "center", sm: "center" }}
+            gap={1}
             p={2}
           >
             <Typography variant="caption">
@@ -359,6 +409,8 @@ export default function UsersPage() {
               count={totalPages}
               page={page}
               onChange={(_, v) => setPage(v)}
+              size="small"
+              siblingCount={0}
             />
           </Stack>
         </Paper>
