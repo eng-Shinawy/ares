@@ -82,7 +82,7 @@ export default function UserDetailsPage() {
         <Button
           variant="contained"
           startIcon={<EditIcon />}
-          onClick={() => router.push(`/users/${id}/edit`)}
+          onClick={() => router.push(`/admin/users/${id}/edit`)}
           sx={{
             borderRadius: 2,
             textTransform: "none",

@@ -1,172 +1,553 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { 
-  Box, 
-  Container, 
-  Typography, 
-  Paper, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow,
-  Button,
-  Chip,
+import React, { useState, useMemo, memo, useCallback } from "react";
+import {
+  Box,
+  Typography,
   IconButton,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Avatar,
+  Chip,
+  Stack,
   CircularProgress,
+  InputAdornment,
+  Card,
   Pagination,
-  useTheme
+  Tooltip,
+  useTheme,
+  alpha,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from "@mui/material";
-import { Edit as EditIcon, Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import Grid from "@mui/material/Grid";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
+import {
+  EditRounded as EditIcon,
+  AddRounded as AddIcon,
+  DeleteOutlineRounded as DeleteIcon,
+  DirectionsCarFilledTwoTone as CarIcon,
+  SearchRounded as SearchIcon,
+  CheckCircleTwoTone as AvailableIcon,
+  KeyTwoTone as RentalIcon,
+  AssessmentTwoTone as InventoryIcon,
+} from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { apiFetchJson } from "@/utils/api-client";
+import { useVehicles, deleteCar } from "@/app/api/cars/cars";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
-interface VehicleListDto {
+// ── CONSTANTS ──
+const ERROR_MESSAGES: Record<string, string> = {
+  "active bookings": "This vehicle cannot be deleted because it has active bookings.",
+  "Cannot delete": "You cannot delete this vehicle right now.",
+};
+
+const getErrorMessage = (err: any): string => {
+  const msg: string = err?.response?.data?.message || err?.message || "";
+  for (const [key, value] of Object.entries(ERROR_MESSAGES)) {
+    if (msg.includes(key)) return value;
+  }
+  return "Something went wrong. Please try again later.";
+};
+
+const getStatusConfig = (v: any) => {
+  if (v.category === "Deleted") return { label: "Not Available", colorKey: "error" as const };
+  if (v.available) return { label: "Available", colorKey: "success" as const };
+  return { label: "Rented", colorKey: "warning" as const };
+};
+
+// ── STAT CARD ──
+const StatCard = memo(function StatCard({ label, value, color, icon }: any) {
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        p: { xs: 2, sm: 2.5 },
+        borderRadius: 4,
+        border: "1px solid",
+        borderColor: "divider",
+        position: "relative",
+        overflow: "hidden",
+        background: (theme) =>
+          `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${alpha(color, 0.08)} 100%)`,
+        transition: "transform 0.2s, box-shadow 0.2s",
+        "&:hover": {
+          transform: "translateY(-2px)",
+          boxShadow: (theme) => `0 8px 24px ${alpha(color, 0.18)}`,
+        },
+      }}
+    >
+      <Box
+        sx={{
+          position: "absolute",
+          top: -18,
+          right: -18,
+          width: 80,
+          height: 80,
+          borderRadius: "50%",
+          bgcolor: alpha(color, 0.1),
+        }}
+      />
+      <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Avatar sx={{ bgcolor: alpha(color, 0.15), color, width: 40, height: 40 }}>
+          {icon}
+        </Avatar>
+        <Box>
+          <Typography variant="overline" color="text.secondary" fontWeight={700} lineHeight={1.2}>
+            {label}
+          </Typography>
+          <Typography variant="h4" fontWeight={800} sx={{ color, lineHeight: 1.1 }}>
+            {value}
+          </Typography>
+        </Box>
+      </Stack>
+    </Card>
+  );
+});
+
+// ── ACTION BUTTONS ──
+const ActionButtons = memo(function ActionButtons({
+  vehicleId,
+  available,
+  hasActiveBookings,
+  onDelete,
+  onNavigate,
+}: {
   vehicleId: string;
-  make: string;
-  model: string;
-  category: string;
-  dailyRate: number;
-  currency: string;
   available: boolean;
-}
+  hasActiveBookings?: boolean;
+  onDelete: (id: string, available: boolean, hasBookings?: boolean) => void;
+  onNavigate: (path: string) => void;
+}) {
+  return (
+    <Stack direction="row" justifyContent="flex-end" spacing={0.5}>
+      <Tooltip title="View">
+        <IconButton
+          size="small"
+          onClick={() => onNavigate(`/admin/cars/${vehicleId}`)}
+          sx={{ borderRadius: 2 }}
+        >
+          <VisibilityOutlinedIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
 
-interface PagedResult {
-  data: VehicleListDto[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-}
+      <Tooltip title="Edit">
+        <IconButton
+          size="small"
+          onClick={() => onNavigate(`/admin/cars/${vehicleId}/edit`)}
+          sx={{ borderRadius: 2 }}
+        >
+          <EditIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
 
+      <Tooltip title={!available ? "Delete" : "Cannot delete rented car"}>
+        <span>
+          <IconButton
+            onClick={() => onDelete(vehicleId, available, hasActiveBookings)}
+            size="small"
+            disabled={!available || hasActiveBookings}
+            sx={{
+              borderRadius: 2,
+              "&:hover": {
+                bgcolor: (theme) => alpha(theme.palette.error.main, 0.1),
+                color: "error.main",
+              },
+              "&.Mui-disabled": { opacity: 0.3 },
+            }}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+    </Stack>
+  );
+});
+
+// ── MAIN PAGE ──
 export default function AdminCarsPage() {
   const theme = useTheme();
   const router = useRouter();
   const { data: session } = useSession();
-  
-  const [vehicles, setVehicles] = useState<VehicleListDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const pageSize = 10;
 
-  const fetchVehicles = async (currentPage: number) => {
-    try {
-      setLoading(true);
-      if (session?.accessToken) {
-        const response = await apiFetchJson<PagedResult>(`api/vehicles/search/${currentPage}/${pageSize}`, {
-          method: "POST",
-          accessToken: session.accessToken,
-          body: JSON.stringify({}) // Empty filter for now
-        });
-        setVehicles(response.data || []);
-        setTotalPages(response.totalPages || 1);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [openDelete, setOpenDelete] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const { vehicles, loading, page, totalPages, setPage } = useVehicles(session?.accessToken);
+
+  // ── FILTER ──
+  const filtered = useMemo(() => {
+    if (!vehicles) return [];
+    const q = search.toLowerCase();
+    return vehicles.filter(
+      (v: any) =>
+        v.make.toLowerCase().includes(q) || v.model.toLowerCase().includes(q)
+    );
+  }, [vehicles, search]);
+
+  // ── STATS ──
+  const total = vehicles?.length || 0;
+  const availableCount = vehicles?.filter((v: any) => !v.available).length || 0;
+  const rentalCount = vehicles?.filter((v: any) => v.available).length || 0;
+
+  // ── HANDLERS ──
+  const handleDelete = useCallback(
+    (id: string, isAvailable: boolean, hasBookings?: boolean) => {
+      if (hasBookings) {
+        setErrorMsg("Cannot delete vehicle with active bookings");
+        return;
       }
-    } catch (error) {
-      console.error("Failed to fetch vehicles:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (isAvailable) {
+        setErrorMsg("Cannot delete a vehicle that is currently rented");
+        return;
+      }
+      setDeleteId(id);
+      setOpenDelete(true);
+    },
+    []
+  );
 
-  useEffect(() => {
-    if (session?.accessToken) {
-      fetchVehicles(page);
+  const confirmDelete = useCallback(async () => {
+    if (!deleteId) return;
+    try {
+      await deleteCar(session?.accessToken!, deleteId);
+      setOpenDelete(false);
+      setDeleteId(null);
+      router.refresh();
+    } catch (err: any) {
+      setErrorMsg(getErrorMessage(err));
+      console.error(err);
     }
-  }, [page, session]);
+  }, [deleteId, session?.accessToken, router]);
 
-  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
-    setPage(value);
-  };
+  const handleCloseDelete = useCallback(() => setOpenDelete(false), []);
+  const handleCloseError = useCallback(() => setErrorMsg(null), []);
+  const handleNavigate = useCallback((path: string) => router.push(path), [router]);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4" fontWeight="800">
-          Fleet Management
-        </Typography>
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />}
-          sx={{ borderRadius: 2, fontWeight: 'bold' }}
-        >
-          Add New Vehicle
-        </Button>
-      </Box>
+    <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: 1300, mx: "auto" }}>
+      {/* HEADER */}
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        justifyContent="space-between"
+        mb={4}
+        alignItems={{ xs: "flex-start", sm: "center" }}
+        gap={2}
+      >
+        <Box>
+          <Typography variant="h4" fontWeight={800} sx={{ fontSize: { xs: "1.6rem", sm: "2rem" } }}>
+            Fleet Inventory
+          </Typography>
+          <Typography color="text.secondary">Manage fleet vehicles</Typography>
+        </Box>
 
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
-        <TableContainer>
-          <Table sx={{ minWidth: 650 }}>
-            <TableHead sx={{ bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' }}>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 'bold' }}>Vehicle</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Daily Rate</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
-                    <CircularProgress />
-                  </TableCell>
+        <Box
+          onClick={() => router.push("/admin/cars/create")}
+          sx={{
+            px: 2.5,
+            py: 1.2,
+            borderRadius: 3,
+            fontWeight: 700,
+            color: "#fff",
+            cursor: "pointer",
+            background: (theme) =>
+              `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+            boxShadow: 3,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            transition: "0.2s",
+            whiteSpace: "nowrap",
+            alignSelf: { xs: "stretch", sm: "auto" },
+            justifyContent: { xs: "center", sm: "flex-start" },
+            "&:hover": { transform: "translateY(-2px)", boxShadow: 6 },
+          }}
+        >
+          <AddIcon fontSize="small" />
+          Add New Vehicle
+        </Box>
+      </Stack>
+
+      {/* STATS */}
+      <Grid container spacing={2} mb={4}>
+        <Grid item xs={12} sm={4}>
+          <StatCard label="Total Assets" value={total} color={theme.palette.primary.main} icon={<InventoryIcon fontSize="small" />} />
+        </Grid>
+        <Grid item xs={6} sm={4}>
+          <StatCard label="Available" value={availableCount} color={theme.palette.success.main} icon={<AvailableIcon fontSize="small" />} />
+        </Grid>
+        <Grid item xs={6} sm={4}>
+          <StatCard label="On Rental" value={rentalCount} color={theme.palette.warning.main} icon={<RentalIcon fontSize="small" />} />
+        </Grid>
+      </Grid>
+
+      {/* FILTER */}
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={3}>
+        <TextField
+          fullWidth
+          placeholder="Search by make or model..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          size="small"
+          sx={{ "& .MuiOutlinedInput-root": { borderRadius: 3, bgcolor: "background.paper" } }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: "text.disabled" }} />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Stack>
+
+      {/* TABLE */}
+      {loading ? (
+        <Box display="flex" justifyContent="center" py={10}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Paper
+          elevation={0}
+          sx={{ borderRadius: 4, border: "1px solid", borderColor: "divider", overflow: "hidden" }}
+        >
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow
+                  sx={{
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                    "& .MuiTableCell-head": {
+                      fontWeight: 700,
+                      fontSize: 12,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      color: "text.secondary",
+                      borderBottom: "1px solid",
+                      borderColor: "divider",
+                      py: 1.5,
+                    },
+                  }}
+                >
+                  <TableCell sx={{ pl: 6 }}>Vehicle</TableCell>
+                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>Category</TableCell>
+                  <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>Daily Rate</TableCell>
+                  <TableCell>Availability</TableCell>
+                  <TableCell align="right" sx={{ pr: 4 }}>Actions</TableCell>
                 </TableRow>
-              ) : vehicles?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
-                    <Typography color="text.secondary">No vehicles found.</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                vehicles?.map((vehicle) => (
-                  <TableRow key={vehicle.vehicleId} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2" fontWeight="600">{vehicle.make} {vehicle.model}</Typography>
-                      <Typography variant="caption" color="text.secondary">ID: {vehicle.vehicleId.substring(0, 8)}...</Typography>
-                    </TableCell>
-                    <TableCell>{vehicle.category || "N/A"}</TableCell>
-                    <TableCell>
-                      <Typography fontWeight="bold">{vehicle.dailyRate} {vehicle.currency}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={vehicle.available ? "Available" : "Unavailable"} 
-                        color={vehicle.available ? "success" : "default"} 
-                        size="small" 
-                        variant={vehicle.available ? "filled" : "outlined"}
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton color="primary" onClick={() => router.push(`/admin/cars/${vehicle.vehicleId}`)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton color="error">
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
+              </TableHead>
+
+              <TableBody>
+                {filtered.length > 0 ? (
+                  filtered.map((v: any) => {
+                    const status = getStatusConfig(v);
+                    const statusColor = theme.palette[status.colorKey].main;
+
+                    return (
+                      <TableRow
+                        key={v.vehicleId}
+                        hover
+                        sx={{
+                          transition: "background 0.15s",
+                          "&:last-child td": { border: 0 },
+                          "&:hover": {
+                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03),
+                          },
+                        }}
+                      >
+                        <TableCell sx={{ py: { xs: 1.2, sm: 1.8 } }}>
+                          <Stack direction="row" spacing={1.5} alignItems="center">
+                            <Box
+                              sx={{
+                                width: { xs: 40, sm: 52 },
+                                height: { xs: 40, sm: 52 },
+                                borderRadius: 2,
+                                overflow: "hidden",
+                                flexShrink: 0,
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              {v.imageUrl ? (
+                                <img
+                                  src={
+                                    v.imageUrl.startsWith("http")
+                                      ? v.imageUrl
+                                      : `http://localhost:5000/${v.imageUrl}`
+                                  }
+                                  alt={`${v.make} ${v.model}`}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                              ) : (
+                                <CarIcon fontSize="small" />
+                              )}
+                            </Box>
+                            <Box>
+                              <Typography fontWeight={700} fontSize={{ xs: 13, sm: 15 }}>
+                                {v.make} {v.model}
+                              </Typography>
+                              <Stack
+                                direction="row"
+                                spacing={0.8}
+                                alignItems="center"
+                                sx={{ display: { xs: "flex", sm: "none" }, mt: 0.3 }}
+                              >
+                                <Typography variant="caption" color="text.secondary">
+                                  {v.category}
+                                </Typography>
+                                <Typography variant="caption" color="text.disabled">·</Typography>
+                                <Typography variant="caption" fontWeight={700} color="primary.main">
+                                  ${v.dailyRate}/day
+                                </Typography>
+                              </Stack>
+                            </Box>
+                          </Stack>
+                        </TableCell>
+
+                        <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                          <Chip
+                            label={v.category || "General"}
+                            size="small"
+                            sx={{
+                              fontWeight: 600,
+                              borderRadius: 2,
+                              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                              color: "primary.main",
+                            }}
+                          />
+                        </TableCell>
+
+                        <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
+                          <Typography fontWeight={700} color="primary.main">
+                            ${v.dailyRate}
+                            <Typography component="span" variant="caption" color="text.secondary" fontWeight={400}>
+                              {" "}/day
+                            </Typography>
+                          </Typography>
+                        </TableCell>
+
+                        <TableCell>
+                          <Chip
+                            label={status.label}
+                            size="small"
+                            sx={{
+                              textTransform: "capitalize",
+                              borderRadius: 2,
+                              bgcolor: alpha(statusColor, 0.15),
+                              color: statusColor,
+                              fontWeight: 700,
+                              fontSize: { xs: 11, sm: 12 },
+                            }}
+                          />
+                        </TableCell>
+
+                        <TableCell align="right">
+                          <ActionButtons
+                            vehicleId={v.vehicleId}
+                            available={v.available}
+                            hasActiveBookings={v.hasActiveBookings}
+                            onDelete={handleDelete}
+                            onNavigate={handleNavigate}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 10 }}>
+                      <Box sx={{ textAlign: "center", opacity: 0.6 }}>
+                        <Avatar
+                          sx={{
+                            width: 64,
+                            height: 64,
+                            mx: "auto",
+                            mb: 2,
+                            bgcolor: (theme) => alpha(theme.palette.text.disabled, 0.1),
+                          }}
+                        >
+                          <SearchIcon sx={{ fontSize: 32, color: "text.disabled" }} />
+                        </Avatar>
+                        <Typography variant="h6" fontWeight={700} color="text.secondary">
+                          No vehicles found
+                        </Typography>
+                      </Box>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        
-        {!loading && vehicles.length > 0 && (
-          <Box sx={{ p: 2, display: 'flex', justifyContent: 'center', borderTop: '1px solid', borderColor: 'divider' }}>
-            <Pagination 
-              count={totalPages} 
-              page={page} 
-              onChange={handlePageChange} 
-              color="primary" 
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            justifyContent="space-between"
+            alignItems="center"
+            gap={1}
+            p={2}
+            sx={{ borderTop: "1px solid", borderColor: "divider" }}
+          >
+            <Typography variant="caption" color="text.secondary">
+              Showing <strong>{filtered.length}</strong> of {total} vehicles
+            </Typography>
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={(_, v) => setPage(v)}
+              size="small"
+              sx={{ "& .MuiPaginationItem-root": { borderRadius: 2 } }}
             />
-          </Box>
-        )}
-      </Paper>
-    </Container>
+          </Stack>
+        </Paper>
+      )}
+
+      {/* DELETE DIALOG */}
+      <Dialog
+        open={openDelete}
+        onClose={handleCloseDelete}
+        PaperProps={{ sx: { borderRadius: 3, p: 1, minWidth: 350 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Delete Vehicle</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete this vehicle?
+          <br />
+          <strong>This action cannot be undone.</strong>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDelete} variant="outlined" sx={{ borderRadius: 2 }}>
+            Cancel
+          </Button>
+          <Button onClick={confirmDelete} color="error" variant="contained" sx={{ borderRadius: 2, fontWeight: 700 }}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ERROR SNACKBAR */}
+      <Snackbar
+        open={!!errorMsg}
+        autoHideDuration={4000}
+        onClose={handleCloseError}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert severity="error" onClose={handleCloseError}>
+          {errorMsg}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }
