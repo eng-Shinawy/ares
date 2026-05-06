@@ -216,7 +216,6 @@ const VehicleMobileCard = memo(function VehicleMobileCard({
   onNavigate: (path: string) => void;
 }) {
   const status = getStatusConfig(v);
-  const statusColor = (theme.palette[status.colorKey] as { main: string }).main;
 
   return (
     <Paper
@@ -231,11 +230,11 @@ const VehicleMobileCard = memo(function VehicleMobileCard({
         "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.03) },
       }}
     >
-      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 1.5 }}>
+      <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
         <Box
           sx={{
-            width: 52,
-            height: 52,
+            width: 60,
+            height: 60,
             borderRadius: 2,
             overflow: "hidden",
             flexShrink: 0,
@@ -249,48 +248,45 @@ const VehicleMobileCard = memo(function VehicleMobileCard({
             <Image
               src={toImageUrl(v.imageUrl) as string}
               alt={`${v.make} ${v.model}`}
-              fill
+              width={100}
+              height={80}
               style={{ objectFit: "cover" }}
             />
           ) : (
             <CarIcon fontSize="small" />
           )}
         </Box>
-
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 15 }} noWrap color="text.primary">
+        <Box sx={{ flex: 1 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 15 }}>
             {v.make} {v.model}
           </Typography>
-          <Stack direction="row" spacing={0.8} sx={{ alignItems: "center" }}>
-            <Typography variant="caption" color="text.secondary">
-              {v.category || "General"}
-            </Typography>
-            <Typography variant="caption" color="text.disabled">
-              ·
-            </Typography>
-            <Typography variant="caption" sx={{ fontWeight: 700 }} color="primary.main">
-              ${v.dailyRate}/day
-            </Typography>
-          </Stack>
+          <Typography variant="caption" color="text.secondary">
+            {v.category || "General"}
+          </Typography>
+          <Box sx={{ mt: 0.5 }}>
+            <Chip
+              label={status.label}
+              size="small"
+              sx={{
+                height: 20,
+                fontSize: 10,
+                fontWeight: 700,
+                bgcolor: alpha((theme.palette[status.colorKey] as { main: string }).main, 0.15),
+                color: (theme.palette[status.colorKey] as { main: string }).main,
+              }}
+            />
+          </Box>
         </Box>
-
-        <Chip
-          label={status.label}
-          size="small"
-          sx={{
-            textTransform: "capitalize",
-            borderRadius: 2,
-            bgcolor: alpha(statusColor, 0.15),
-            color: statusColor,
-            fontWeight: 700,
-            fontSize: 11,
-            flexShrink: 0,
-          }}
-        />
+        <Box sx={{ textAlign: "right" }}>
+          <Typography sx={{ fontWeight: 800, color: "primary.main" }}>${v.dailyRate}</Typography>
+          <Typography variant="caption" color="text.secondary">
+            /day
+          </Typography>
+        </Box>
       </Stack>
 
       <ActionButtons
-        vehicleId={v.vehicleId || ""}
+        vehicleId={v.id}
         available={!!v.available}
         hasActiveBookings={v.hasActiveBookings}
         onDelete={onDelete}
@@ -384,13 +380,7 @@ export default function AdminCarsPage() {
         <Box>
           {filtered.length > 0 ? (
             filtered.map((v: Vehicle) => (
-              <VehicleMobileCard
-                key={v.vehicleId}
-                v={v}
-                theme={theme}
-                onDelete={handleDelete}
-                onNavigate={handleNavigate}
-              />
+              <VehicleMobileCard key={v.id} v={v} theme={theme} onDelete={handleDelete} onNavigate={handleNavigate} />
             ))
           ) : (
             <Box sx={{ py: 8, textAlign: "center", opacity: 0.6 }}>
@@ -482,7 +472,7 @@ export default function AdminCarsPage() {
 
                   return (
                     <TableRow
-                      key={v.vehicleId}
+                      key={v.id}
                       hover
                       sx={{
                         transition: "background 0.15s",
@@ -511,7 +501,8 @@ export default function AdminCarsPage() {
                               <Image
                                 src={toImageUrl(v.imageUrl) as string}
                                 alt={`${v.make} ${v.model}`}
-                                fill
+                                width={420}
+                                height={300}
                                 style={{ objectFit: "cover" }}
                               />
                             ) : (
@@ -558,7 +549,8 @@ export default function AdminCarsPage() {
                         <Typography sx={{ fontWeight: 700 }} color="primary.main">
                           ${v.dailyRate}
                           <Typography
-                            sx={{ component: "span", fontWeight: 400 }}
+                            component="span"
+                            sx={{ fontWeight: 400 }}
                             variant="caption"
                             color="text.secondary"
                           >
@@ -585,7 +577,7 @@ export default function AdminCarsPage() {
 
                       <TableCell align="right">
                         <ActionButtons
-                          vehicleId={v.vehicleId || ""}
+                          vehicleId={v.id}
                           available={!!v.available}
                           hasActiveBookings={v.hasActiveBookings}
                           onDelete={handleDelete}

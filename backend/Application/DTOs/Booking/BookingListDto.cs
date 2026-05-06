@@ -16,4 +16,8 @@ public record BookingListDto(
     DateTime To,
     decimal Price,
     string Status,
-    bool PayLater);
+    bool PayLater,
+    /// <summary>UTC timestamp when this booking record was created in the database.</summary>
+    DateTime? CreatedAt = null,
+    /// <summary>UTC timestamp of the last status change (e.g. when payment was confirmed).</summary>
+    DateTime? UpdatedAt = null);

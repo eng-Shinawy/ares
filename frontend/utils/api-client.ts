@@ -1,8 +1,24 @@
+import { logger } from "@/utils/logger";
+
 type ApiFetchOptions = RequestInit & {
   accessToken?: string;
 };
 
-import { logger } from "@/utils/logger";
+/**
+ * Typed API error that exposes the HTTP status code.
+ * Callers can use `err instanceof ApiError && err.status === 404`
+ * to distinguish "endpoint not found" from real server errors.
+ */
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly statusText: string,
+    public readonly body: string
+  ) {
+    super(`API Error ${String(status)}: ${statusText}`);
+    this.name = "ApiError";
+  }
+}
 
 export function getApiBaseUrl(): string {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -36,14 +52,9 @@ export async function apiFetchJson<T>(endpoint: string, options: ApiFetchOptions
   });
 
   if (!response.ok) {
-    // 1. هنقرا تفاصيل المشكلة اللي الباك إند باعتها
     const errorBody = await response.text();
-
-    // 2. هنطبعها في الكونسول عشان نشوفها
     logger.error("Backend Error Details", errorBody);
-
-    // 3. هنرمي الإيرور بالتفاصيل الجديدة
-    throw new Error(`API Error ${String(response.status)}: ${response.statusText} \nDetails: ${errorBody}`);
+    throw new ApiError(response.status, response.statusText, errorBody);
   }
 
   return (await response.json()) as T;
