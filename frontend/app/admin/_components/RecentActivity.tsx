@@ -22,50 +22,52 @@ import { useSession } from "next-auth/react";
 import { apiFetchJson, ApiError } from "@/utils/api-client";
 import { logger } from "@/utils/logger";
 
-// ── Response shape from GET /api/dashboard/recent-summary ────────────────────
+// ── Shape from GET /api/dashboard/recent-summary ──────────────────────────────
 interface RecentActivityItem {
   type: "booking" | "payment" | "user" | "vehicle";
   message: string;
-  createdAt: string; // ISO-8601 UTC from the database — always real
+  createdAt: string; // ISO-8601 UTC — always a real DB timestamp
   icon: string;
 }
 
-// ── Fallback API response shapes ──────────────────────────────────────────────
+// ── Fallback: shapes from existing APIs ───────────────────────────────────────
 interface RawBooking {
   id?: string | number;
-  _id?: string | number;
+  // BookingListDto fields (after rebuild includes these)
   bookingNumber?: string;
   status?: string;
-  user?: { firstName?: string; lastName?: string };
-  driver?: { fullName?: string };
-  createdAt?: string;
-  updatedAt?: string;
-  from?: string;
+  car?: { name?: string };
+  createdAt?: string;   // real creation timestamp (after rebuild)
+  updatedAt?: string;   // last status-change timestamp (after rebuild)
+  // pre-rebuild only fields still available:
+  from?: string;        // pickup date (used as last-resort fallback only)
 }
+
 interface RawUser {
   id?: string | number;
   firstName?: string;
   lastName?: string;
   email?: string;
-  createdAt?: string;
+  createdAt?: string;   // always present — UserManagementDto always had this
 }
+
 interface RawVehicle {
   vehicleId?: string;
   id?: string | number;
   make?: string;
   model?: string;
-  year?: number;
-  createdAt?: string; // present after VehicleListDto update
+  createdAt?: string;   // present after VehicleListDto rebuild
 }
-// PagedResult<T> from backend serialises as { data, page, pageSize, totalCount, totalPages }
-interface PagedResult<T> {
+
+// PagedResult<T> serialises as { data, page, pageSize, totalCount, totalPages }
+// Some older admin endpoints wrap as { resultData, pageInfo }
+interface AnyPagedResponse<T> {
   data?: T[];
-  // legacy/other shapes
   resultData?: T[];
   items?: T[];
 }
 
-// ── Icon + colour per type ────────────────────────────────────────────────────
+// ── Icon / colour map ─────────────────────────────────────────────────────────
 const TYPE_META: Record<
   RecentActivityItem["type"],
   { color: "primary" | "success" | "warning" | "info"; icon: React.ReactNode }
@@ -76,47 +78,55 @@ const TYPE_META: Record<
   vehicle: { color: "warning", icon: <DirectionsCarIcon fontSize="small" /> },
 };
 
-// ── Timestamp formatter ───────────────────────────────────────────────────────
-// Today  → relative  ("2 min ago", "1 hr ago")
-// Older  → short date ("Apr 29", "May 1")
-function formatTimestamp(iso: string): string {
+// ── Timestamp display ─────────────────────────────────────────────────────────
+// Today   → relative  ("2 min ago", "1 hr ago", "just now")
+// Older   → short date ("Apr 29", "May 1")
+// Missing → "–"
+function formatTimestamp(iso: string | null | undefined): string {
+  if (!iso) return "–";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "–";
 
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
-
-  // Clamp negative diff (slight clock skew)
-  if (diffMs < 0) return "just now";
+  if (diffMs < 0) return "just now"; // clock-skew guard
 
   const seconds = Math.floor(diffMs / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours   = Math.floor(minutes / 60);
 
-  // Same calendar day → relative
-  const sameDay =
+  const isToday =
     date.getFullYear() === now.getFullYear() &&
     date.getMonth()    === now.getMonth()    &&
     date.getDate()     === now.getDate();
 
-  if (sameDay) {
-    if (seconds < 60)  return "just now";
-    if (minutes < 60)  return `${minutes} min ago`;
+  if (isToday) {
+    if (seconds < 60) return "just now";
+    if (minutes < 60) return `${minutes} min ago`;
     return `${hours} hr ago`;
   }
 
-  // Older than today → "Apr 29" or "Apr 29, 2025" if a different year
-  const sameYear = date.getFullYear() === now.getFullYear();
+  // Older than today → "Apr 29" or "Apr 29, 2025" for a different year
   return date.toLocaleDateString("en-US", {
     month: "short",
-    day: "numeric",
-    ...(sameYear ? {} : { year: "numeric" }),
+    day:   "numeric",
+    ...(date.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}),
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Fallback: assemble from the three existing working APIs
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Fallback helpers ──────────────────────────────────────────────────────────
+const extractRows = <T,>(res: AnyPagedResponse<T> | null): T[] =>
+  res?.data ?? res?.resultData ?? res?.items ?? [];
+
+// Best available timestamp for a booking record
+const bestBookingTs = (b: RawBooking): string | undefined =>
+  b.createdAt ?? (b.from ? b.from : undefined);
+
+// Best available timestamp for a payment event (status changed to Confirmed/Completed)
+const bestPaymentTs = (b: RawBooking): string | undefined =>
+  b.updatedAt ?? b.createdAt ?? (b.from ? b.from : undefined);
+
+// ── Fallback: build 4-item list from existing working APIs ────────────────────
 async function fetchViaFallbackApis(
   accessToken: string,
   isSupplier: boolean,
@@ -124,8 +134,8 @@ async function fetchViaFallbackApis(
 ): Promise<RecentActivityItem[]> {
 
   const [bookingsRes, usersRes, vehiclesRes] = await Promise.all([
-    // Bookings — POST /api/admin/bookings/search/1/10
-    apiFetchJson<PagedResult<RawBooking>>("api/admin/bookings/search/1/10", {
+    // POST /api/admin/bookings/search/1/10  → PagedResult<BookingListDto> → { data: [...] }
+    apiFetchJson<AnyPagedResponse<RawBooking>>("api/admin/bookings/search/1/10", {
       method: "POST",
       accessToken,
       body: JSON.stringify({
@@ -138,25 +148,24 @@ async function fetchViaFallbackApis(
         size: 10,
         language: "en",
       }),
-    }).catch((err: unknown) => { logger.error("RecentActivity fallback: bookings", err); return null; }),
+    }).catch((e: unknown) => { logger.error("RecentActivity fallback: bookings", e); return null; }),
 
-    // Users — POST /api/admin/users/1/10
-    apiFetchJson<PagedResult<RawUser>>("api/admin/users/1/10", {
+    // POST /api/admin/users/1/10  → PagedResult<UserManagementDto> → { data: [...] }
+    apiFetchJson<AnyPagedResponse<RawUser>>("api/admin/users/1/10", {
       method: "POST",
       accessToken,
       body: JSON.stringify({ keyword: null, types: ["user"] }),
-    }).catch((err: unknown) => { logger.error("RecentActivity fallback: users", err); return null; }),
+    }).catch((e: unknown) => { logger.error("RecentActivity fallback: users", e); return null; }),
 
-    // Vehicles — POST /api/vehicles/search/1/10
-    // Response is PagedResult<VehicleListDto> → serialises as { data: [...], ... }
-    apiFetchJson<PagedResult<RawVehicle>>("api/vehicles/search/1/10", {
+    // POST /api/vehicles/search/1/10  → PagedResult<VehicleListDto> → { data: [...] }
+    apiFetchJson<AnyPagedResponse<RawVehicle>>("api/vehicles/search/1/10", {
       method: "POST",
       accessToken,
       body: JSON.stringify({ suppliers: null, keyword: null }),
-    }).catch((err: unknown) => { logger.error("RecentActivity fallback: vehicles", err); return null; }),
+    }).catch((e: unknown) => { logger.error("RecentActivity fallback: vehicles", e); return null; }),
   ]);
 
-  // Keep only the single most-recent item per type
+  // One slot per type — keep the most recently created
   const latestByType = new Map<RecentActivityItem["type"], RecentActivityItem>();
 
   const keepLatest = (item: RecentActivityItem) => {
@@ -166,47 +175,74 @@ async function fetchViaFallbackApis(
     }
   };
 
-  // ── Bookings ──────────────────────────────────────────────────────────────
-  // Backend may return resultData or data depending on which endpoint/version
-  const bookings = bookingsRes?.resultData ?? bookingsRes?.data ?? bookingsRes?.items ?? [];
+  // ── Bookings + Payment ────────────────────────────────────────────────────
+  const bookings = extractRows(bookingsRes);
   for (const b of bookings) {
-    const createdAt = b.createdAt ?? b.from;
-    if (!createdAt) continue; // no timestamp → skip rather than fake
+    const rawId  = String(b.id ?? "");
+    const shortId = (b.bookingNumber ?? rawId.substring(0, 6)).toUpperCase() || "–";
+    const carName = b.car?.name ?? "";
 
-    const rawId = String(b.id ?? b._id ?? "");
-    const shortId = (b.bookingNumber ?? rawId.substring(0, 6)).toUpperCase();
-    const customer =
-      b.user
-        ? `${b.user.firstName ?? ""} ${b.user.lastName ?? ""}`.trim() || "a customer"
-        : b.driver?.fullName ?? "a customer";
+    const bTs = bestBookingTs(b);
+    // Always add booking — if no real timestamp, show "–" rather than skip
+    keepLatest({
+      type: "booking",
+      message: carName
+        ? `Booking for ${carName} created`
+        : `Booking #${shortId} created`,
+      createdAt: bTs ?? "",
+      icon: "booking",
+    });
 
-    keepLatest({ type: "booking", message: `Booking #${shortId} created by ${customer}`, createdAt, icon: "booking" });
-
-    // Payment: only when the booking has been paid (Confirmed or Completed)
-    if ((b.status === "Completed" || b.status === "Confirmed") && b.updatedAt) {
-      keepLatest({ type: "payment", message: `Payment completed for Booking #${shortId}`, createdAt: b.updatedAt, icon: "payment" });
+    // Payment: only when booking is paid (Confirmed or Completed)
+    const isPaid = b.status === "Completed" || b.status === "Confirmed";
+    if (isPaid) {
+      const pTs = bestPaymentTs(b);
+      keepLatest({
+        type: "payment",
+        message: carName
+          ? `Payment completed for ${carName}`
+          : `Payment completed for Booking #${shortId}`,
+        createdAt: pTs ?? "",
+        icon: "payment",
+      });
     }
   }
 
   // ── Users ─────────────────────────────────────────────────────────────────
-  const users = usersRes?.resultData ?? usersRes?.data ?? usersRes?.items ?? [];
+  const users = extractRows(usersRes);
   for (const u of users) {
-    if (!u.createdAt) continue;
-    const fullName = `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email || "New user";
-    keepLatest({ type: "user", message: `New user registered: ${fullName}`, createdAt: u.createdAt, icon: "user" });
+    const fullName = `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim()
+                     || u.email
+                     || "New user";
+    keepLatest({
+      type: "user",
+      message: `New user registered: ${fullName}`,
+      createdAt: u.createdAt ?? "",
+      icon: "user",
+    });
+    break; // UserManagementDto is sorted newest-first by the service; first is latest
   }
 
   // ── Vehicles ──────────────────────────────────────────────────────────────
-  // PagedResult serialises as { data: [...] }
-  const vehicles = vehiclesRes?.data ?? vehiclesRes?.resultData ?? vehiclesRes?.items ?? [];
+  const vehicles = extractRows(vehiclesRes);
   for (const v of vehicles) {
-    if (!v.createdAt) continue; // available after VehicleListDto.CreatedAt added
     const label = [v.make, v.model].filter(Boolean).join(" ") || "Vehicle";
-    keepLatest({ type: "vehicle", message: `Vehicle ${label} added`, createdAt: v.createdAt, icon: "vehicle" });
+    keepLatest({
+      type: "vehicle",
+      message: `Vehicle ${label} added`,
+      // createdAt present after rebuild; show "–" (via formatTimestamp) if not yet
+      createdAt: v.createdAt ?? "",
+      icon: "vehicle",
+    });
+    break; // service orders newest-first; first entry is the latest
   }
 
   return [...latestByType.values()]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort((a, b) =>
+      // Items without timestamps go to bottom
+      (b.createdAt ? new Date(b.createdAt).getTime() : 0) -
+      (a.createdAt ? new Date(a.createdAt).getTime() : 0)
+    )
     .slice(0, 4);
 }
 
@@ -234,36 +270,31 @@ export default function RecentActivity() {
       setItems(Array.isArray(data) ? data : []);
       setLoading(false);
       return;
-    } catch (primaryErr: unknown) {
-      const status = primaryErr instanceof ApiError ? primaryErr.status : 0;
+    } catch (err: unknown) {
+      const status = err instanceof ApiError ? err.status : 0;
       if (status !== 404) {
-        // Real server error (401, 500…) — surface it
-        logger.error("RecentActivity: primary endpoint failed", primaryErr);
+        // Real server error (401, 500…)
+        logger.error("RecentActivity: primary endpoint failed", err);
         setError(true);
         setLoading(false);
         return;
       }
-      // 404 = endpoint not compiled yet → fall back silently
-      logger.warn("RecentActivity: /recent-summary returned 404, using fallback APIs");
+      logger.warn("RecentActivity: /recent-summary not yet available, using fallback");
     }
 
-    // ── Strategy 2: assemble from existing working APIs ───────────────────
+    // ── Strategy 2: assemble from existing APIs ───────────────────────────
     try {
       const isSupplier = session.user?.roles?.includes("Supplier") ?? false;
       const userId     = session.user?.id ?? "";
-      const fallback   = await fetchViaFallbackApis(session.accessToken, isSupplier, userId);
-      setItems(fallback);
-    } catch (fallbackErr: unknown) {
-      logger.error("RecentActivity: fallback also failed", fallbackErr);
-      setItems([]); // graceful empty rather than error banner
+      setItems(await fetchViaFallbackApis(session.accessToken, isSupplier, userId));
+    } catch (err: unknown) {
+      logger.error("RecentActivity: fallback failed", err);
+      setItems([]); // show empty state, never crash
     }
-
     setLoading(false);
   }, [session?.accessToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    void fetchActivity();
-  }, [fetchActivity]);
+  useEffect(() => { void fetchActivity(); }, [fetchActivity]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -307,7 +338,7 @@ export default function RecentActivity() {
     return (
       <Stack spacing={0.5}>
         {items.map((item, idx) => {
-          const meta = TYPE_META[item.type] ?? TYPE_META.booking;
+          const meta      = TYPE_META[item.type] ?? TYPE_META.booking;
           const colorMain = theme.palette[meta.color].main;
 
           return (
@@ -401,6 +432,7 @@ export default function RecentActivity() {
             <RefreshIcon sx={{ fontSize: "1.1rem" }} />
           </IconButton>
         </Box>
+
         {renderBody()}
       </CardContent>
     </Card>

@@ -380,13 +380,7 @@ export default function AdminCarsPage() {
         <Box>
           {filtered.length > 0 ? (
             filtered.map((v: Vehicle) => (
-              <VehicleMobileCard
-                key={v.id}
-                v={v}
-                theme={theme}
-                onDelete={handleDelete}
-                onNavigate={handleNavigate}
-              />
+              <VehicleMobileCard key={v.id} v={v} theme={theme} onDelete={handleDelete} onNavigate={handleNavigate} />
             ))
           ) : (
             <Box sx={{ py: 8, textAlign: "center", opacity: 0.6 }}>
