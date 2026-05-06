@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  CircularProgress,
-  useTheme,
-} from "@mui/material";
+import { Card, CardContent, Typography, Box, CircularProgress, useTheme } from "@mui/material";
 // eslint-disable-next-line @typescript-eslint/no-deprecated, sonarjs/deprecation
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { apiFetchJson } from "@/utils/api-client";
@@ -69,7 +62,7 @@ export default function BookingOverview() {
         });
 
         const bookingsList = data.resultData || data.data || data.items || [];
-        
+
         const counts: Record<string, number> = {
           Pending: 0,
           Confirmed: 0,
@@ -88,7 +81,7 @@ export default function BookingOverview() {
           }
         });
 
-        const formattedStats = EXPECTED_STATUSES.map((key) => ({
+        const formattedStats = EXPECTED_STATUSES.map(key => ({
           name: key,
           value: counts[key] || 0,
           color: STATUS_COLORS[key],
@@ -151,13 +144,15 @@ export default function BookingOverview() {
                 animationDuration={1000}
                 animationBegin={0}
               >
-                {stats.filter(s => s.value > 0).map((entry, index) => (
-                  // eslint-disable-next-line @typescript-eslint/no-deprecated, sonarjs/deprecation
-                  <Cell key={`cell-${String(index)}`} fill={entry.color} stroke="none" />
-                ))}
+                {stats
+                  .filter(s => s.value > 0)
+                  .map((entry, index) => (
+                    // eslint-disable-next-line @typescript-eslint/no-deprecated, sonarjs/deprecation
+                    <Cell key={`cell-${String(index)}`} fill={entry.color} stroke="none" />
+                  ))}
               </Pie>
-              <Tooltip 
-                formatter={(value: unknown) => [`${String(value ?? 0)} Bookings`, 'Count']}
+              <Tooltip
+                formatter={(value: unknown) => [`${String(value ?? 0)} Bookings`, "Count"]}
                 contentStyle={{ borderRadius: 8, border: "none", boxShadow: theme.shadows[3] }}
               />
             </PieChart>
@@ -180,15 +175,28 @@ export default function BookingOverview() {
             <Typography variant="h4" sx={{ fontWeight: "800", lineHeight: 1, color: "text.primary" }}>
               {total}
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: "700", textTransform: "uppercase", mt: 0.5 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontWeight: "700", textTransform: "uppercase", mt: 0.5 }}
+            >
               Total
             </Typography>
           </Box>
         </Box>
 
         {/* Legend */}
-        <Box sx={{ width: { xs: "100%", md: "50%" }, pl: { xs: 0, md: 4 }, mt: { xs: 4, md: 0 }, display: "flex", flexDirection: "column", gap: 2 }}>
-          {stats.map((stat) => {
+        <Box
+          sx={{
+            width: { xs: "100%", md: "50%" },
+            pl: { xs: 0, md: 4 },
+            mt: { xs: 4, md: 0 },
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+          }}
+        >
+          {stats.map(stat => {
             const percentage = total > 0 ? ((stat.value / total) * 100).toFixed(1) : "0.0";
             return (
               <Box key={stat.name} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -202,7 +210,11 @@ export default function BookingOverview() {
                   <Typography variant="body2" sx={{ fontWeight: "700", color: "text.primary" }}>
                     {stat.value}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ width: 45, textAlign: "right", fontWeight: "600" }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ width: 45, textAlign: "right", fontWeight: "600" }}
+                  >
                     {percentage}%
                   </Typography>
                 </Box>
@@ -217,19 +229,19 @@ export default function BookingOverview() {
   return (
     <Card
       elevation={0}
-      sx={{
+      sx={theme => ({
         borderRadius: 4,
         border: "1px solid",
-        borderColor: "border.main",
+        borderColor: theme.palette.border.main,
         height: "100%",
-        boxShadow: "shadow.card",
-      }}
+        boxShadow: theme.palette.shadow.card,
+      })}
     >
       <CardContent sx={{ p: { xs: 2, sm: 3 }, height: "100%" }}>
         <Typography variant="h6" sx={{ fontWeight: "700", mb: 3 }}>
           Booking Overview
         </Typography>
-        
+
         {renderContent()}
       </CardContent>
     </Card>

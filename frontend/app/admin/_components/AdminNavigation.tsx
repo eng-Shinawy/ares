@@ -200,7 +200,13 @@ export default function AdminNavigation({ children }: Readonly<{ children: React
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Typography
               variant="subtitle2"
-              sx={{ fontWeight: "800", color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+              sx={{
+                fontWeight: "800",
+                color: "text.primary",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
             >
               {userName}
             </Typography>
@@ -315,7 +321,15 @@ export default function AdminNavigation({ children }: Readonly<{ children: React
           onClick={() => {
             void handleLogout();
           }}
-          sx={{ py: 1, borderRadius: 2, mx: 1, mt: 0.5, color: "error.main", gap: 1.5, "&:hover": { bgcolor: "error.light" } }}
+          sx={{
+            py: 1,
+            borderRadius: 2,
+            mx: 1,
+            mt: 0.5,
+            color: "error.main",
+            gap: 1.5,
+            "&:hover": { bgcolor: "error.light" },
+          }}
         >
           <ListItemIcon sx={{ color: "inherit", minWidth: "auto" }}>
             <LogoutIcon fontSize="small" />
