@@ -66,7 +66,8 @@ public class VehicleService : IVehicleService
                 averageRating,
                 reviewCount,
                 null,
-                vehicle.AvailabilityStatus == "Available"
+                vehicle.AvailabilityStatus == "Available",
+                vehicle.CreatedAt
             ));
         }
 
@@ -463,7 +464,8 @@ public class VehicleService : IVehicleService
                 averageRating,
                 reviewCount,
                 null,
-                vehicle.AvailabilityStatus == "Available"
+                vehicle.AvailabilityStatus == "Available",
+                vehicle.CreatedAt
             ));
         }
 
