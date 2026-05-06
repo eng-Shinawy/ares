@@ -54,4 +54,34 @@ public class DashboardController : ControllerBase
 
         return Ok(summary);
     }
+
+    /// <summary>
+    /// Returns at most one latest real event per category (booking, payment, user, vehicle, verification).
+    /// Sorted by most recent first. No fake or mock data — every item comes directly from the database.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of up to 5 recent activity items</returns>
+    [HttpGet("recent-summary")]
+    [ProducesResponseType(typeof(IReadOnlyList<RecentActivityItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<IReadOnlyList<RecentActivityItemDto>>> GetRecentSummary(CancellationToken cancellationToken = default)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null)
+        {
+            return Unauthorized(new { Message = "User not authenticated" });
+        }
+
+        var userId = Guid.Parse(userIdClaim.Value);
+        var isSupplier = User.IsInRole("Supplier");
+        var isAdmin = User.IsInRole("Admin");
+
+        Guid? targetSupplierId = isSupplier && !isAdmin ? userId : null;
+
+        _logger.LogInformation("Getting recent activity summary for user {UserId}, targetSupplierId: {TargetSupplierId}", userId, targetSupplierId);
+
+        var items = await _dashboardService.GetRecentSummaryAsync(targetSupplierId, cancellationToken);
+
+        return Ok(items);
+    }
 }

@@ -144,7 +144,9 @@ public class BookingService : IBookingService
             b.ReturnDate ?? DateTime.MinValue,
             b.TotalPrice ?? 0,
             b.Status.ToString(),
-            false // PayLater flag - placeholder until field is added to entity
+            false, // PayLater flag - placeholder until field is added to entity
+            b.CreatedAt,
+            b.UpdatedAt
         )).ToList();
 
         return new PagedResult<BookingListDto>(
@@ -331,7 +333,9 @@ public class BookingService : IBookingService
             b.ReturnDate ?? DateTime.MinValue,
             b.TotalPrice ?? 0,
             b.Status.ToString(),
-            false // PayLater flag - placeholder until field is added to entity
+            false, // PayLater flag - placeholder until field is added to entity
+            b.CreatedAt,
+            b.UpdatedAt
         )).ToList();
 
         return new PagedResult<BookingListDto>(

@@ -14,4 +14,6 @@ public record VehicleListDto(
     double Rating,
     int ReviewCount,
     double? Distance,
-    bool Available);
+    bool Available,
+    /// <summary>UTC timestamp when the vehicle record was created. Null for legacy records.</summary>
+    DateTime? CreatedAt = null);
