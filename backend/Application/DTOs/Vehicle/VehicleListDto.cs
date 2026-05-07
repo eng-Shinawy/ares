@@ -14,4 +14,5 @@ public record VehicleListDto(
     double Rating,
     int ReviewCount,
     double? Distance,
-    bool Available);
+    bool Available,
+    string? LocationCity);
