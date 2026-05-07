@@ -66,9 +66,7 @@ function isReviewPayload(value: unknown): value is BookingReviewDto {
   }
   const record = value as Record<string, unknown>;
   return (
-    typeof record.reviewId === "string" &&
-    typeof record.bookingId === "string" &&
-    typeof record.rating === "number"
+    typeof record.reviewId === "string" && typeof record.bookingId === "string" && typeof record.rating === "number"
   );
 }
 
@@ -172,9 +170,7 @@ export default function BookingReviewSection({
 
     try {
       const isUpdate = review !== null;
-      const url = isUpdate
-        ? toApiUrl(`/api/reviews/${review.reviewId}`)
-        : toApiUrl(`/api/reviews/create`);
+      const url = isUpdate ? toApiUrl(`/api/reviews/${review.reviewId}`) : toApiUrl(`/api/reviews/create`);
 
       const body = isUpdate
         ? { Rating: draftRating, Comment: draftComment.trim() === "" ? null : draftComment.trim() }
@@ -279,7 +275,7 @@ export default function BookingReviewSection({
                   minRows={3}
                   fullWidth
                   value={draftComment}
-                  onChange={(e) => {
+                  onChange={e => {
                     setDraftComment(e.target.value);
                   }}
                   slotProps={{ htmlInput: { maxLength: COMMENT_MAX } }}
@@ -318,7 +314,11 @@ export default function BookingReviewSection({
             {/* Existing review -> editable or locked */}
             {review && !editing ? (
               <Stack spacing={1.5}>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={1}
+                  sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}
+                >
                   <Rating value={review.rating} readOnly />
                   <Typography variant="caption" color="text.secondary">
                     {review.canEdit
@@ -327,9 +327,7 @@ export default function BookingReviewSection({
                   </Typography>
                 </Stack>
                 <Typography variant="body2" color="text.primary">
-                  {review.comment && review.comment.trim() !== ""
-                    ? review.comment
-                    : "No written feedback provided."}
+                  {review.comment && review.comment.trim() !== "" ? review.comment : "No written feedback provided."}
                 </Typography>
                 {review.canEdit ? (
                   <Box>
@@ -361,7 +359,7 @@ export default function BookingReviewSection({
                   minRows={3}
                   fullWidth
                   value={draftComment}
-                  onChange={(e) => {
+                  onChange={e => {
                     setDraftComment(e.target.value);
                   }}
                   slotProps={{ htmlInput: { maxLength: COMMENT_MAX } }}
