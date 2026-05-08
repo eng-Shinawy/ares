@@ -57,10 +57,7 @@ export const getNotifications = async (token: string): Promise<NotificationsResp
   return (await res.json()) as NotificationsResponse;
 };
 
-export const markNotificationAsRead = async (
-  id: string,
-  token: string,
-): Promise<MarkNotificationReadResponse> => {
+export const markNotificationAsRead = async (id: string, token: string): Promise<MarkNotificationReadResponse> => {
   const res = await fetch(toApiUrl(`/api/notifications/${id}/read`), {
     method: "PATCH",
     headers: jsonHeaders(token),
@@ -80,9 +77,7 @@ export const markNotificationAsRead = async (
   return (await res.json()) as MarkNotificationReadResponse;
 };
 
-export const markAllNotificationsAsRead = async (
-  token: string,
-): Promise<MarkAllReadResponse> => {
+export const markAllNotificationsAsRead = async (token: string): Promise<MarkAllReadResponse> => {
   const res = await fetch(toApiUrl("/api/notifications/read-all"), {
     method: "PATCH",
     headers: jsonHeaders(token),
@@ -103,10 +98,7 @@ export const markAllNotificationsAsRead = async (
   return { success: true, updated: data.updated };
 };
 
-export const getNotificationCount = async (
-  userId: string,
-  token: string,
-): Promise<NotificationCountResponse> => {
+export const getNotificationCount = async (userId: string, token: string): Promise<NotificationCountResponse> => {
   const res = await fetch(toApiUrl(`/api/notification-counter/${userId}`), {
     method: "GET",
     headers: {
@@ -119,9 +111,7 @@ export const getNotificationCount = async (
   return (await res.json()) as NotificationCountResponse;
 };
 
-export const seedNotifications = async (
-  token: string,
-): Promise<SeedNotificationsResponse> => {
+export const seedNotifications = async (token: string): Promise<SeedNotificationsResponse> => {
   const res = await fetch(toApiUrl("/api/notifications/seed"), {
     method: "POST",
     headers: jsonHeaders(token),
