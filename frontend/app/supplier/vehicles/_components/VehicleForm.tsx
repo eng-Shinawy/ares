@@ -38,8 +38,6 @@ import {
   type VehicleFormValues,
 } from "./VehicleForm.schema";
 
-
-
 interface VehicleFormProps {
   readonly initialValues?: VehicleFormValues;
   readonly submitLabel: string;

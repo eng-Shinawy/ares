@@ -76,7 +76,6 @@ export default function EditSupplierVehiclePage() {
     };
   }, [id, session?.accessToken, sessionStatus]);
 
-
   // Map the server DTO to the form's field shape, with the same defaults
   // the form would apply for missing values.
   const initialValues: VehicleFormValues | undefined = useMemo(() => {

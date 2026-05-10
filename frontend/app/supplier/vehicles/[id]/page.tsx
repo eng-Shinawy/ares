@@ -95,7 +95,6 @@ export default function SupplierVehicleDetailsPage() {
     };
   }, [id, session?.accessToken, sessionStatus]);
 
-
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
