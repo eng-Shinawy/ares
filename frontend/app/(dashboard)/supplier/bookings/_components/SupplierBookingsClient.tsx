@@ -109,20 +109,20 @@ export default function SupplierBookingsClient() {
   };
 
   // ── Renderers ────────────────────────────────────────────────────────
-  const renderTableBody = () => {
+  const renderTableBody = (): React.ReactNode => {
     if (loading) {
-      return (
-        <TableRow>
+      return [
+        <TableRow key="loading">
           <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
             <CircularProgress />
           </TableCell>
-        </TableRow>
-      );
+        </TableRow>,
+      ];
     }
 
     if (bookings.length === 0) {
-      return (
-        <TableRow>
+      return [
+        <TableRow key="empty">
           <TableCell colSpan={8} align="center" sx={{ py: 10 }}>
             <Box sx={{ textAlign: "center", opacity: 0.6 }}>
               <Avatar
@@ -144,8 +144,8 @@ export default function SupplierBookingsClient() {
               </Typography>
             </Box>
           </TableCell>
-        </TableRow>
-      );
+        </TableRow>,
+      ];
     }
 
     return bookings.map((booking: SupplierBookingListItemDto) => {
@@ -298,10 +298,7 @@ export default function SupplierBookingsClient() {
       </Stack>
 
       {/* ── SEARCH & TABLE SECTION ── */}
-      <Paper
-        elevation={0}
-        sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", overflow: "hidden" }}
-      >
+      <Paper elevation={0} sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", overflow: "hidden" }}>
         {/* Filter Bar */}
         <Stack
           direction={{ xs: "column", md: "row" }}

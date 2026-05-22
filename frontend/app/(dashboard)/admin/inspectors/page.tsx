@@ -39,11 +39,7 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import BlockIcon from "@mui/icons-material/Block";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AddIcon from "@mui/icons-material/Add";
-import {
-  listInspectors,
-  updateInspectorStatus,
-  type Inspector,
-} from "@/api-clients/inspectors/inspectors";
+import { listInspectors, updateInspectorStatus, type Inspector } from "@/api-clients/inspectors/inspectors";
 import { logger } from "@/utils/logger";
 import AddInspectorDialog from "./_components/AddInspectorDialog";
 
@@ -318,11 +314,7 @@ export default function InspectorsPage() {
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
                         <Tooltip title="View Details">
-                          <IconButton
-                            component={Link}
-                            href={`/admin/inspectors/${i.inspectorId}`}
-                            size="small"
-                          >
+                          <IconButton component={Link} href={`/admin/inspectors/${i.inspectorId}`} size="small">
                             <VisibilityOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>

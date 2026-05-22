@@ -2,22 +2,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  Box,
-  Typography,
-  Stack,
-  Paper,
-  Button,
-  Skeleton,
-} from "@mui/material";
+import { Box, Typography, Stack, Paper, Button, Skeleton } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import Link from "next/link";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
-import {
-  listMyInspections,
-  type InspectionSummary,
-} from "@/api-clients/inspections/inspections";
+import { listMyInspections, type InspectionSummary } from "@/api-clients/inspections/inspections";
 import { logger } from "@/utils/logger";
 import InspectionStatusBadge from "../_components/InspectionStatusBadge";
 

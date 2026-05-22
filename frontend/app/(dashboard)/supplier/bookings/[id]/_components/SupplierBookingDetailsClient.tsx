@@ -60,9 +60,9 @@ const getStatusConfig = (status?: string) => {
 };
 
 interface SectionCardProps {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
+  readonly icon: React.ReactNode;
+  readonly title: string;
+  readonly children: React.ReactNode;
 }
 
 function SectionCard({ icon, title, children }: SectionCardProps) {
@@ -102,14 +102,18 @@ function SectionCard({ icon, title, children }: SectionCardProps) {
 }
 
 interface FieldRowProps {
-  label: string;
-  value?: React.ReactNode;
+  readonly label: string;
+  readonly value?: React.ReactNode;
 }
 
 function FieldRow({ label, value }: FieldRowProps) {
   return (
     <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.3 }}
+      >
         {label}
       </Typography>
       <Typography variant="body2" sx={{ fontWeight: 600, textAlign: "right" }}>
@@ -136,12 +140,13 @@ export default function SupplierBookingDetailsClient({ bookingId }: { readonly b
       try {
         const data = await getSupplierBookingById(session.accessToken, bookingId);
         setBooking(data);
-      } catch (e: any) {
+      } catch (e: unknown) {
         logger.error("Failed to load supplier booking details", e);
-        if (e?.response?.status === 404 || e?.status === 404) {
+        const err = e as { response?: { status?: number }; status?: number; message?: string };
+        if (err.response?.status === 404 || err.status === 404) {
           setError("Booking not found, or you don't have permission to view it.");
         } else {
-          setError(e instanceof Error ? e.message : "Failed to load booking details.");
+          setError(e instanceof Error ? e.message : err.message ?? "Failed to load booking details.");
         }
       } finally {
         setLoading(false);
@@ -265,10 +270,7 @@ export default function SupplierBookingDetailsClient({ bookingId }: { readonly b
         <SectionCard icon={<EventIcon />} title="Booking Information">
           <FieldRow label="Pickup Date" value={formatDateLong(booking.pickupDate)} />
           <FieldRow label="Return Date" value={formatDateLong(booking.returnDate)} />
-          <FieldRow
-            label="Total Days"
-            value={booking.totalDays != null ? `${String(booking.totalDays)} days` : "—"}
-          />
+          <FieldRow label="Total Days" value={booking.totalDays != null ? `${String(booking.totalDays)} days` : "—"} />
           <Divider />
           <FieldRow
             label="Pickup Location"
@@ -321,10 +323,7 @@ export default function SupplierBookingDetailsClient({ bookingId }: { readonly b
             }
           />
           <FieldRow label="Method" value={booking.payment?.paymentMethod ?? "—"} />
-          <FieldRow
-            label="Processed At"
-            value={formatDateLong(booking.payment?.processedTimestamp)}
-          />
+          <FieldRow label="Processed At" value={formatDateLong(booking.payment?.processedTimestamp)} />
         </SectionCard>
       </Box>
     </Box>
