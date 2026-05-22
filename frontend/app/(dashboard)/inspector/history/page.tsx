@@ -20,10 +20,7 @@ import {
 import Link from "next/link";
 import HistoryIcon from "@mui/icons-material/History";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import {
-  getInspectionHistory,
-  type InspectionSummary,
-} from "@/api-clients/inspections/inspections";
+import { getInspectionHistory, type InspectionSummary } from "@/api-clients/inspections/inspections";
 import { logger } from "@/utils/logger";
 import InspectionStatusBadge from "../_components/InspectionStatusBadge";
 
@@ -94,9 +91,7 @@ export default function InspectionHistoryPage() {
               sx={{ p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider" }}
             >
               <Stack direction="row" sx={{ justifyContent: "space-between", mb: 0.5 }}>
-                <Typography sx={{ fontWeight: 700 }}>
-                  {i.bookingNumber || i.bookingId.split("-")[0]}
-                </Typography>
+                <Typography sx={{ fontWeight: 700 }}>{i.bookingNumber || i.bookingId.split("-")[0]}</Typography>
                 <InspectionStatusBadge status={i.status} />
               </Stack>
               <Typography variant="body2" color="text.secondary">

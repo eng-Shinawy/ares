@@ -1,27 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Box,
-  Typography,
-  Paper,
-  Stack,
-  Button,
-  Card,
-  Skeleton,
-  useTheme,
-  alpha,
-  type Theme,
-} from "@mui/material";
+import { Box, Typography, Paper, Stack, Button, Card, Skeleton, useTheme, alpha, type Theme } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import Link from "next/link";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import {
-  listMyInspections,
-  type InspectionSummary,
-} from "@/api-clients/inspections/inspections";
+import { listMyInspections, type InspectionSummary } from "@/api-clients/inspections/inspections";
 import { logger } from "@/utils/logger";
 import InspectionStatusBadge from "./_components/InspectionStatusBadge";
 
@@ -97,10 +83,7 @@ export default function InspectorDashboardPage() {
         </Grid>
       </Grid>
 
-      <Paper
-        elevation={0}
-        sx={{ p: { xs: 2, md: 3 }, borderRadius: 2, border: "1px solid", borderColor: "divider" }}
-      >
+      <Paper elevation={0} sx={{ p: { xs: 2, md: 3 }, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={1}
@@ -109,12 +92,7 @@ export default function InspectorDashboardPage() {
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
             Latest Assigned Inspections
           </Typography>
-          <Button
-            component={Link}
-            href="/inspector/inspections"
-            size="small"
-            endIcon={<ArrowForwardIcon />}
-          >
+          <Button component={Link} href="/inspector/inspections" size="small" endIcon={<ArrowForwardIcon />}>
             View all
           </Button>
         </Stack>

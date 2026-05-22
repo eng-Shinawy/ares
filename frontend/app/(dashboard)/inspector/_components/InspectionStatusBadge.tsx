@@ -38,11 +38,5 @@ export default function InspectionStatusBadge({ status, size = "small" }: Props)
     label: status,
   };
 
-  return (
-    <Chip
-      label={c.label}
-      size={size}
-      sx={{ bgcolor: c.bg, color: c.color, fontWeight: 700 }}
-    />
-  );
+  return <Chip label={c.label} size={size} sx={{ bgcolor: c.bg, color: c.color, fontWeight: 700 }} />;
 }

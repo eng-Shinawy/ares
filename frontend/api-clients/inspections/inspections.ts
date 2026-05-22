@@ -85,13 +85,10 @@ export async function assignInspectorToBooking(
 
 // ─── Inspector dashboard ──────────────────────────────────────────────
 export async function listMyInspections(includeSubmitted = false): Promise<InspectionSummary[]> {
-  return apiFetchJson<InspectionSummary[]>(
-    `/api/inspector/inspections?includeSubmitted=${String(includeSubmitted)}`,
-    {
-      method: "GET",
-      accessToken: await token(),
-    }
-  );
+  return apiFetchJson<InspectionSummary[]>(`/api/inspector/inspections?includeSubmitted=${String(includeSubmitted)}`, {
+    method: "GET",
+    accessToken: await token(),
+  });
 }
 
 export async function getInspectionDetails(inspectionId: string): Promise<InspectionDetails> {
@@ -124,10 +121,7 @@ export async function addInspectionImage(inspectionId: string, imageUrl: string)
  * Multipart upload — sends raw image files which the backend persists
  * under wwwroot/uploads/inspections/{id} and registers as images.
  */
-export async function uploadInspectionImages(
-  inspectionId: string,
-  files: File[]
-): Promise<InspectionImage[]> {
+export async function uploadInspectionImages(inspectionId: string, files: File[]): Promise<InspectionImage[]> {
   const formData = new FormData();
   files.forEach(file => {
     formData.append("files", file);

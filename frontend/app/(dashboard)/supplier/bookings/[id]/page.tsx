@@ -6,11 +6,7 @@ export const metadata: Metadata = {
   description: "Supplier Booking Details.",
 };
 
-export default async function SupplierBookingDetailsPage({
-  params,
-}: {
-  readonly params: Promise<{ id: string }>;
-}) {
+export default async function SupplierBookingDetailsPage({ params }: { readonly params: Promise<{ id: string }> }) {
   const { id } = await params;
   return <SupplierBookingDetailsClient bookingId={id} />;
 }

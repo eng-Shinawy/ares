@@ -26,11 +26,7 @@ import { useRouter } from "next/navigation";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import BlockIcon from "@mui/icons-material/Block";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import {
-  getInspectorDetails,
-  updateInspectorStatus,
-  type InspectorDetails,
-} from "@/api-clients/inspectors/inspectors";
+import { getInspectorDetails, updateInspectorStatus, type InspectorDetails } from "@/api-clients/inspectors/inspectors";
 import { logger } from "@/utils/logger";
 
 interface Props {
@@ -243,10 +239,7 @@ export default function InspectorDetailsClient({ inspectorId }: Props) {
         </Grid>
       </Paper>
 
-      <Paper
-        elevation={0}
-        sx={{ p: { xs: 2, md: 3 }, borderRadius: 2, border: "1px solid", borderColor: "divider" }}
-      >
+      <Paper elevation={0} sx={{ p: { xs: 2, md: 3 }, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
         <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
           Recent Inspections
         </Typography>

@@ -395,6 +395,12 @@ public class BookingServiceTests
         _bookingRepositoryMock.Setup(x => x.GetBookingWithDetailsAsync(bookingId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(booking);
 
+        // Booking details now also resolves the latest payment for the
+        // booking — wire an empty Payments set so the service can run.
+        var emptyPayments = new List<BookingPayment>().AsQueryable();
+        var paymentsDbSet = CreateMockDbSet(emptyPayments);
+        _contextMock.Setup(x => x.Payments).Returns(paymentsDbSet.Object);
+
         // Act
         var result = await _bookingService.GetBookingDetailsAsync(bookingId, userId);
 

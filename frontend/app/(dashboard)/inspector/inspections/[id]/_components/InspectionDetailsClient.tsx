@@ -206,13 +206,14 @@ export default function InspectionDetailsClient({ inspectionId }: Props) {
   };
 
   const allImages = useMemo(() => {
-    const existing: { id: string; src: string | undefined; uploaded: true; raw?: InspectionImage }[] =
-      (details?.images ?? []).map(img => ({
-        id: img.id,
-        src: toImageUrl(img.imageUrl),
-        uploaded: true,
-        raw: img,
-      }));
+    const existing: { id: string; src: string | undefined; uploaded: true; raw?: InspectionImage }[] = (
+      details?.images ?? []
+    ).map(img => ({
+      id: img.id,
+      src: toImageUrl(img.imageUrl),
+      uploaded: true,
+      raw: img,
+    }));
     const pending: { id: string; src: string; uploaded: false }[] = pendingImages.map(p => ({
       id: p.id,
       src: p.previewUrl,
@@ -290,8 +291,8 @@ export default function InspectionDetailsClient({ inspectionId }: Props) {
 
       {isLocked && (
         <Alert severity={details.status === "Approved" ? "success" : "error"} sx={{ mb: 3 }}>
-          This inspection was submitted on{" "}
-          {details.submittedAt ? new Date(details.submittedAt).toLocaleString() : "—"} and is now locked.
+          This inspection was submitted on {details.submittedAt ? new Date(details.submittedAt).toLocaleString() : "—"}{" "}
+          and is now locked.
         </Alert>
       )}
 
@@ -320,10 +321,7 @@ export default function InspectionDetailsClient({ inspectionId }: Props) {
 
         {/* C. Inspection Form */}
         <Grid size={{ xs: 12, md: 7 }}>
-          <Paper
-            elevation={0}
-            sx={{ p: 3, borderRadius: 2, border: "1px solid", borderColor: "divider" }}
-          >
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
               Inspection Report
             </Typography>
@@ -331,10 +329,7 @@ export default function InspectionDetailsClient({ inspectionId }: Props) {
 
             {/* Image upload */}
             <Box sx={{ mb: 3 }}>
-              <Stack
-                direction="row"
-                sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}
-              >
+              <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                   Photos ({String(totalImageCount)}/{String(MAX_IMAGES)})
                 </Typography>
@@ -563,9 +558,12 @@ export default function InspectionDetailsClient({ inspectionId }: Props) {
       </Grid>
 
       {/* Confirm dialog */}
-      <Dialog open={confirmOpen} onClose={() => {
-        if (!submitting) setConfirmOpen(false);
-      }}>
+      <Dialog
+        open={confirmOpen}
+        onClose={() => {
+          if (!submitting) setConfirmOpen(false);
+        }}
+      >
         <DialogTitle sx={{ fontWeight: 800 }}>Confirm submission</DialogTitle>
         <DialogContent>
           <Typography variant="body2">

@@ -113,10 +113,7 @@ export interface SupplierBookingDetailsDto {
   };
 }
 
-export async function getSupplierBookingById(
-  accessToken: string,
-  id: string
-): Promise<SupplierBookingDetailsDto> {
+export async function getSupplierBookingById(accessToken: string, id: string): Promise<SupplierBookingDetailsDto> {
   return apiFetchJson<SupplierBookingDetailsDto>(`/api/supplier/bookings/${id}`, {
     method: "GET",
     accessToken,
