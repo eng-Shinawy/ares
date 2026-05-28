@@ -1,10 +1,7 @@
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
-import { Box, Container, Grid, Paper, Stack, Typography } from "@mui/material";
-import Gallery from "@/app/(public)/vehicles/[vehicleId]/_components/vehicle-details/Gallery";
-import VehicleInfo from "@/app/(public)/vehicles/[vehicleId]/_components/vehicle-details/VehicleInfo";
-import ReviewSection from "@/app/(public)/vehicles/[vehicleId]/_components/vehicle-details/ReviewSection";
-import BookingCard from "@/app/(public)/vehicles/[vehicleId]/_components/vehicle-details/BookingCard";
+import { Box, Typography } from "@mui/material";
+import VehicleDetailsClient from "@/app/(public)/vehicles/[vehicleId]/_components/vehicle-details/VehicleDetailsClient";
 import {
   type BookingLocationOption,
   type VehicleDetailsViewModel,
@@ -36,6 +33,7 @@ interface ApiVehicleDto {
   readonly model?: string;
   readonly year?: number;
   readonly color?: string;
+  readonly licensePlate?: string;
   readonly transmission?: string;
   readonly fuelType?: string;
   readonly seats?: number;
@@ -46,7 +44,10 @@ interface ApiVehicleDto {
   readonly availabilityStatus?: string;
   readonly images?: readonly ApiVehicleImageDto[];
   readonly features?: readonly ApiVehicleFeatureDto[];
-  readonly supplier?: { readonly name?: string };
+  readonly supplier?: {
+    readonly id?: string;
+    readonly name?: string;
+  };
   readonly averageRating?: number;
   readonly reviewCount?: number;
 }
@@ -89,6 +90,7 @@ function normalizeVehicle(vehicle: ApiVehicleDto): VehicleDetailsViewModel {
     model: asString(vehicle.model),
     year: asNumber(vehicle.year),
     color: asString(vehicle.color),
+    licensePlate: asString(vehicle.licensePlate),
     transmission: asString(vehicle.transmission),
     fuelType: asString(vehicle.fuelType),
     seats: asNumber(vehicle.seats),
@@ -111,6 +113,7 @@ function normalizeVehicle(vehicle: ApiVehicleDto): VehicleDetailsViewModel {
         featureDescription: asString(feature.featureDescription),
       }))
       .filter(feature => feature.featureName !== ""),
+    supplierId: asString(vehicle.supplier?.id),
     supplierName: asString(vehicle.supplier?.name),
     averageRating: asNumber(vehicle.averageRating),
     reviewCount: asNumber(vehicle.reviewCount),
@@ -189,8 +192,6 @@ export default async function VehicleDetailsPage({ params }: PageProps) {
     })(),
   ]);
 
-  const isAdmin = session?.user.roles.includes("Admin") ?? false;
-
   if (!pageData) {
     return (
       <Box component="main" sx={{ minHeight: "60vh", display: "grid", placeItems: "center", px: 2 }}>
@@ -207,43 +208,9 @@ export default async function VehicleDetailsPage({ params }: PageProps) {
     notFound();
   }
 
-  return (
-    <Box component="main" sx={{ minHeight: "100vh", bgcolor: "background.default", py: { xs: 4, md: 6 } }}>
-      <Container maxWidth="xl">
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, lg: 8 }}>
-            <Stack spacing={3}>
-              <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
-                <Gallery images={vehicle.images} vehicleLabel={`${vehicle.make} ${vehicle.model}`} />
-              </Paper>
+  const isAdmin = session?.user.roles.includes("Admin") ?? false;
+  const isOwner = session?.user.id === vehicle.supplierId;
+  const canEdit = isAdmin || isOwner;
 
-              <Paper
-                elevation={0}
-                sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: { xs: 2, md: 3 } }}
-              >
-                <VehicleInfo vehicle={vehicle} />
-              </Paper>
-
-              <Paper
-                elevation={0}
-                sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: { xs: 2, md: 3 } }}
-              >
-                <ReviewSection reviews={reviews} />
-              </Paper>
-            </Stack>
-          </Grid>
-
-          <Grid size={{ xs: 12, lg: 4 }}>
-            <Box sx={{ position: { lg: "sticky" }, top: { lg: 96 } }}>
-              {!isAdmin && (
-                <Paper elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
-                  <BookingCard vehicle={vehicle} locationOptions={locations} />
-                </Paper>
-              )}
-            </Box>
-          </Grid>
-        </Grid>
-      </Container>
-    </Box>
-  );
+  return <VehicleDetailsClient vehicle={vehicle} reviews={reviews} locations={locations} canEdit={canEdit} />;
 }
