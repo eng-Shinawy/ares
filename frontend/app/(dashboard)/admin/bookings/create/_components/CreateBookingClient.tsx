@@ -215,9 +215,7 @@ export default function CreateBookingClient() {
       clearTimeout(handle);
       controller.abort();
     };
-    // vehicle is intentionally NOT a dependency to avoid loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vehicleSearch, pickupDate, returnDate, session?.accessToken]);
+  }, [vehicleSearch, pickupDate, returnDate, session?.accessToken, vehicle]);
 
   // ── Location autocomplete (pickup/dropoff) ─────────────────────────
   const fetchLocationSuggestions = async (query: string, type: "pickup" | "dropoff", signal: AbortSignal) => {
@@ -454,34 +452,30 @@ export default function CreateBookingClient() {
                   ? "Type at least 3 characters to search customers."
                   : "No customers found."
               }
-              renderOption={(props, option) => {
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const { key, ...optionProps } = props;
-                return (
-                  <li key={option.id} {...optionProps}>
-                    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", width: "100%" }}>
-                      <Avatar
-                        sx={{
-                          width: 32,
-                          height: 32,
-                          bgcolor: alpha(theme.palette.primary.main, 0.08),
-                          color: "primary.main",
-                        }}
-                      >
-                        <PersonIcon fontSize="small" />
-                      </Avatar>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography sx={{ fontWeight: 600 }} noWrap>
-                          {option.fullName || "Unnamed"}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" noWrap>
-                          {option.email ?? "no email"} · {option.phone ?? "no phone"}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </li>
-                );
-              }}
+              renderOption={(props, option) => (
+                <li {...props} key={option.id}>
+                  <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", width: "100%" }}>
+                    <Avatar
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        bgcolor: alpha(theme.palette.primary.main, 0.08),
+                        color: "primary.main",
+                      }}
+                    >
+                      <PersonIcon fontSize="small" />
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{ fontWeight: 600 }} noWrap>
+                        {option.fullName || "Unnamed"}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" noWrap>
+                        {option.email ?? "no email"} · {option.phone ?? "no phone"}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </li>
+              )}
               renderInput={params => (
                 <TextField
                   {...params}
@@ -584,18 +578,14 @@ export default function CreateBookingClient() {
                 isOptionEqualToValue={(option, value) => option.id === value.id}
                 getOptionLabel={option => option.label}
                 noOptionsText="No locations found."
-                renderOption={(props, option) => {
-                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                  const { key, ...optionProps } = props;
-                  return (
-                    <li key={option.id} {...optionProps}>
-                      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-                        <PlaceIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                        <Typography variant="body2">{option.label}</Typography>
-                      </Stack>
-                    </li>
-                  );
-                }}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                      <PlaceIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                      <Typography variant="body2">{option.label}</Typography>
+                    </Stack>
+                  </li>
+                )}
                 renderInput={params => (
                   <TextField
                     {...params}
@@ -655,18 +645,14 @@ export default function CreateBookingClient() {
                 isOptionEqualToValue={(option, value) => option.id === value.id}
                 getOptionLabel={option => option.label}
                 noOptionsText="No locations found."
-                renderOption={(props, option) => {
-                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                  const { key, ...optionProps } = props;
-                  return (
-                    <li key={option.id} {...optionProps}>
-                      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-                        <PlaceIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                        <Typography variant="body2">{option.label}</Typography>
-                      </Stack>
-                    </li>
-                  );
-                }}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                      <PlaceIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                      <Typography variant="body2">{option.label}</Typography>
+                    </Stack>
+                  </li>
+                )}
                 renderInput={params => (
                   <TextField
                     {...params}
@@ -738,39 +724,35 @@ export default function CreateBookingClient() {
                     sx: { bgcolor: theme => darken(theme.palette.background.paper, 0.04) },
                   },
                 }}
-                renderOption={(props, option) => {
-                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                  const { key, ...optionProps } = props;
-                  return (
-                    <li key={option.id} {...optionProps}>
-                      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", width: "100%", py: 0.5 }}>
-                        <Avatar
-                          variant="rounded"
-                          src={toImageUrl(option.thumbnail ?? undefined)}
-                          sx={{
-                            width: 40,
-                            height: 40,
-                            bgcolor: alpha(theme.palette.primary.main, 0.08),
-                            color: "primary.main",
-                          }}
-                        >
-                          <CarIcon fontSize="small" />
-                        </Avatar>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography sx={{ fontWeight: 600 }} noWrap>
-                            {option.name || "Unnamed"}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" noWrap>
-                            {option.plateNumber ?? "No plate"} · {option.supplierName ?? "—"}
-                          </Typography>
-                        </Box>
-                        <Typography sx={{ fontWeight: 700, color: "success.main", whiteSpace: "nowrap" }}>
-                          {formatCurrency(option.dailyRate ?? 0)}/day
+                renderOption={(props, option) => (
+                  <li {...props} key={option.id}>
+                    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", width: "100%", py: 0.5 }}>
+                      <Avatar
+                        variant="rounded"
+                        src={toImageUrl(option.thumbnail ?? undefined)}
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          bgcolor: alpha(theme.palette.primary.main, 0.08),
+                          color: "primary.main",
+                        }}
+                      >
+                        <CarIcon fontSize="small" />
+                      </Avatar>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontWeight: 600 }} noWrap>
+                          {option.name || "Unnamed"}
                         </Typography>
-                      </Stack>
-                    </li>
-                  );
-                }}
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                          {option.plateNumber ?? "No plate"} · {option.supplierName ?? "—"}
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ fontWeight: 700, color: "success.main", whiteSpace: "nowrap" }}>
+                        {formatCurrency(option.dailyRate ?? 0)}/day
+                      </Typography>
+                    </Stack>
+                  </li>
+                )}
                 renderInput={params => (
                   <TextField
                     {...params}
