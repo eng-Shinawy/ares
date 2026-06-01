@@ -1,11 +1,12 @@
 import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
-import { Box, Container, Grid, Paper, Stack, Typography, Divider } from "@mui/material";
+import { Box, Container, Grid, Stack, Typography } from "@mui/material";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { toApiUrl } from "@/utils/api-client";
-import { formatCurrency } from "@/utils/currency-helpers";
 import { logger } from "@/utils/logger";
 import PaymentForm from "./_components/PaymentForm";
+import ExpressCheckout from "./_components/ExpressCheckout";
+import OrderSummary from "./_components/OrderSummary";
 
 interface PageProps {
   readonly params: Promise<{ bookingId: string }>;
@@ -17,7 +18,7 @@ interface BookingDetailsDto {
     readonly vehicleId: string;
     readonly make: string;
     readonly model: string;
-    readonly imageUrl: string;
+    readonly image: string;
     readonly supplier: {
       readonly id: string;
       readonly name: string;
@@ -71,101 +72,55 @@ export default async function CheckoutPage({ params }: PageProps) {
     redirect(`/bookings/confirmation/${bookingId}`);
   }
 
-  const pickupDate = new Date(booking.from);
-  const returnDate = new Date(booking.to);
-  const days = Math.max(1, Math.ceil((returnDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24)));
+  const enableApplePay = process.env.ENABLE_APPLE_PAY === "true";
+  const enableGooglePay = process.env.ENABLE_GOOGLE_PAY === "true";
 
   return (
-    <Box component="main" sx={{ minHeight: "100vh", bgcolor: "background.default", py: { xs: 4, md: 8 } }}>
+    <Box component="main" sx={{ minHeight: "100vh", bgcolor: "background.default", py: { xs: 4, md: 10 } }}>
       <Container maxWidth="lg">
-        <Typography variant="h4" sx={{ fontWeight: 900, mb: 4 }}>
-          Checkout
-        </Typography>
+        {/* Header & Stepper */}
+        <Grid container spacing={3} sx={{ mb: 6 }}>
+          <Grid size={{ xs: 12, md: 8 }}>
+            <Typography variant="h3" sx={{ fontWeight: 800, mb: 1, letterSpacing: "-0.04em", color: "primary.main" }}>
+              Complete Booking
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4, fontSize: "1.125rem" }}>
+              Review your details and complete secure payment.
+            </Typography>
+
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 2 }}>
+              <Box sx={{ height: 8, flexGrow: 1, bgcolor: "primary.main", borderRadius: 999 }} />
+              <Box sx={{ height: 8, flexGrow: 1, bgcolor: "primary.main", borderRadius: 999 }} />
+              <Box sx={{ height: 8, flexGrow: 1, bgcolor: "secondary.main", borderRadius: 999, position: "relative" }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    position: "absolute",
+                    top: -24,
+                    right: 0,
+                    fontWeight: 700,
+                    color: "secondary.main",
+                  }}
+                >
+                  Payment
+                </Typography>
+              </Box>
+            </Stack>
+          </Grid>
+        </Grid>
 
         <Grid container spacing={4}>
-          {/* Order Summary */}
-          <Grid size={{ xs: 12, md: 5 }} sx={{ order: { xs: 1, md: 2 } }}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3,
-                borderRadius: 2,
-                border: "1px solid",
-                borderColor: "divider",
-                position: "sticky",
-                top: 24,
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>
-                Order Summary
-              </Typography>
-
-              <Stack spacing={2}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Vehicle
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                    {booking.car.make} {booking.car.model}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Supplier: {booking.car.supplier.name}
-                  </Typography>
-                </Box>
-
-                <Divider />
-
-                <Grid container spacing={2}>
-                  <Grid size={6}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Pickup
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {pickupDate.toLocaleDateString()}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
-                      {booking.pickupLocation.label}
-                    </Typography>
-                  </Grid>
-                  <Grid size={6}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Return
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {returnDate.toLocaleDateString()}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
-                      {booking.dropOffLocation.label}
-                    </Typography>
-                  </Grid>
-                </Grid>
-
-                <Divider />
-
-                <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Rental Duration
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {days} {days === 1 ? "Day" : "Days"}
-                  </Typography>
-                </Stack>
-
-                <Stack direction="row" sx={{ justifyContent: "space-between", pt: 1 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                    Total Amount
-                  </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 900 }} color="primary.main">
-                    {formatCurrency(booking.price)}
-                  </Typography>
-                </Stack>
-              </Stack>
-            </Paper>
+          {/* Left Column: Payment */}
+          <Grid size={{ xs: 12, lg: 8 }} sx={{ order: { xs: 2, lg: 1 } }}>
+            <Stack spacing={4}>
+              <ExpressCheckout enableApplePay={enableApplePay} enableGooglePay={enableGooglePay} />
+              <PaymentForm bookingId={booking.id} amount={booking.price} accessToken={session.accessToken} />
+            </Stack>
           </Grid>
 
-          {/* Payment Form */}
-          <Grid size={{ xs: 12, md: 7 }} sx={{ order: { xs: 2, md: 1 } }}>
-            <PaymentForm bookingId={booking.id} amount={booking.price} accessToken={session.accessToken} />
+          {/* Right Column: Order Summary */}
+          <Grid size={{ xs: 12, lg: 4 }} sx={{ order: { xs: 1, lg: 2 } }}>
+            <OrderSummary booking={booking} />
           </Grid>
         </Grid>
       </Container>
