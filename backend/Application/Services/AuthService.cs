@@ -2,6 +2,7 @@ using Backend.Application.DTOs.Auth;
 using Backend.Application.Exceptions;
 using Backend.Application.Interfaces;
 using Backend.Domain.Entities;
+using Backend.Domain.Entities.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -95,6 +96,49 @@ public class AuthService : IAuthService
         // Assign requested role (server-resolved, never trusts the raw
         // frontend value).
         await _userManager.AddToRoleAsync(user, requestedRole);
+
+        // ── Driver Module (Phase 1) ────────────────────────────────────
+        // When the new user registers as a Driver, immediately create an
+        // empty DriverProfile row tied to the user. Status defaults to
+        // Incomplete so the profile-completion gate (Phase 2) blocks all
+        // driver features until the user submits license, IDs, address,
+        // emergency contact, and work areas.
+        //
+        // Wrapped in a try so a transient failure here never blocks user
+        // creation — Phase 2 can self-heal by inserting the row on first
+        // call if it is somehow missing.
+        if (string.Equals(requestedRole, "Driver", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var profile = new DriverProfile
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = user.Id,
+                    Status = DriverProfileStatus.Incomplete,
+                    Availability = DriverAvailability.Unavailable,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.AddDriverProfile(profile);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation(
+                    "Empty driver profile created for user {UserId} on registration",
+                    user.Id);
+            }
+            catch (Exception ex)
+            {
+                // Best-effort: do not block the registration on this — the
+                // profile-completion endpoint upserts the row if missing.
+                _logger.LogWarning(
+                    ex,
+                    "Failed to create initial driver profile for user {UserId}; will be created on first profile-completion call",
+                    user.Id);
+            }
+        }
 
         // Generate email confirmation token
         var emailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
@@ -502,7 +546,7 @@ public class AuthService : IAuthService
             return new List<string>();
         }
 
-        return new List<string> { "Customer", "Supplier", "Admin" };
+        return new List<string> { "Customer", "Supplier", "Admin", "Driver", "Inspector" };
     }
 
     public async Task<LoginResponse> DemoLoginAsync(string role, CancellationToken cancellationToken = default)
@@ -595,8 +639,8 @@ public class AuthService : IAuthService
 
     /// <summary>
     /// Maps a raw role string from the registration payload to a canonical
-    /// ASP.NET Identity role name. Only <c>"customer"</c> and
-    /// <c>"supplier"</c> are accepted on this self-service endpoint —
+    /// ASP.NET Identity role name. Only <c>"customer"</c>, <c>"supplier"</c>,
+    /// and <c>"driver"</c> are accepted on this self-service endpoint —
     /// Admin / Inspector accounts must be provisioned through the
     /// administrative flow. The mapping is case-insensitive; any unknown
     /// or null value resolves to <c>"Customer"</c>, which preserves the
@@ -612,6 +656,14 @@ public class AuthService : IAuthService
         if (requested.Equals("supplier", StringComparison.OrdinalIgnoreCase))
         {
             return "Supplier";
+        }
+
+        // Driver Module (Phase 1) — drivers self-register and then must
+        // complete their professional profile before unlocking the
+        // driver-facing features.
+        if (requested.Equals("driver", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Driver";
         }
 
         // Any other value — including the explicit "customer" — falls
