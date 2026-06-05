@@ -77,7 +77,7 @@ public class AuthService : IAuthService
             LastName = request.LastName,
             PhoneNumber = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
             EmailConfirmed = false,
-            Status = "Pending"
+            Status = "Active"
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
@@ -280,7 +280,8 @@ public class AuthService : IAuthService
                 LastName: user.LastName ?? string.Empty,
                 Roles: roles.ToList(),
                 EmailVerified: user.EmailConfirmed,
-                Status: user.Status
+                Status: user.Status,
+                Phone: user.PhoneNumber
             )
         );
     }
@@ -466,7 +467,8 @@ public class AuthService : IAuthService
                 LastName: user.LastName ?? string.Empty,
                 Roles: roles.ToList(),
                 EmailVerified: user.EmailConfirmed,
-                Status: user.Status
+                Status: user.Status,
+                Phone: user.PhoneNumber
             )
         );
     }
@@ -589,53 +591,13 @@ public class AuthService : IAuthService
                 LastName: user.LastName ?? string.Empty,
                 Roles: roles.ToList(),
                 EmailVerified: user.EmailConfirmed,
-                Status: user.Status
+                Status: user.Status,
+                Phone: user.PhoneNumber
             )
         );
     }
 
-    /// <inheritdoc />
-    public async Task CompleteProfileAsync(Guid userId, CompleteProfileRequest request, CancellationToken cancellationToken = default)
-    {
-        var user = await _userManager.FindByIdAsync(userId.ToString())
-            ?? throw new NotFoundException("User not found");
 
-        // Apply optional overrides (only if non-empty after trimming —
-        // don't accidentally wipe an existing name/phone).
-        if (!string.IsNullOrWhiteSpace(request.FirstName))
-        {
-            user.FirstName = request.FirstName.Trim();
-        }
-        if (!string.IsNullOrWhiteSpace(request.LastName))
-        {
-            user.LastName = request.LastName.Trim();
-        }
-        if (!string.IsNullOrWhiteSpace(request.Phone))
-        {
-            user.PhoneNumber = request.Phone.Trim();
-        }
-
-        // Flip status away from Pending. Already-Active users get a no-op
-        // so this stays idempotent.
-        if (string.Equals(user.Status, "Pending", StringComparison.OrdinalIgnoreCase))
-        {
-            user.Status = "Active";
-        }
-
-        user.UpdatedAt = DateTime.UtcNow;
-        var result = await _userManager.UpdateAsync(user);
-        if (!result.Succeeded)
-        {
-            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            _logger.LogWarning("Profile completion failed for user {UserId}: {Errors}", userId, errors);
-            throw new ValidationException(new Dictionary<string, string[]>
-            {
-                { "User", result.Errors.Select(e => e.Description).ToArray() }
-            });
-        }
-
-        _logger.LogInformation("Profile completed for user {UserId}", userId);
-    }
 
     /// <summary>
     /// Maps a raw role string from the registration payload to a canonical

@@ -50,7 +50,7 @@ public class PaymentServiceTests
         {
             Id = bookingId,
             UserId = userId,
-            Status = BookingStatus.Pending,
+            Status = BookingStatus.PaymentPending,
             TotalPrice = 150.00m
         };
 
@@ -169,7 +169,7 @@ public class PaymentServiceTests
         {
             Id = bookingId,
             UserId = differentUserId, // Different user ID
-            Status = BookingStatus.Pending
+            Status = BookingStatus.PaymentPending
         };
 
         _bookingRepositoryMock.Setup(x => x.GetByIdAsync(bookingId, It.IsAny<CancellationToken>()))
@@ -238,7 +238,7 @@ public class PaymentServiceTests
         {
             Id = bookingId,
             UserId = userId,
-            Status = BookingStatus.Pending
+            Status = BookingStatus.PaymentPending
         };
 
         _bookingRepositoryMock.Setup(x => x.GetByIdAsync(bookingId, It.IsAny<CancellationToken>()))
@@ -282,7 +282,7 @@ public class PaymentServiceTests
         {
             Id = bookingId,
             UserId = userId,
-            Status = BookingStatus.Pending
+            Status = BookingStatus.PaymentPending
         };
 
         _bookingRepositoryMock.Setup(x => x.GetByIdAsync(bookingId, It.IsAny<CancellationToken>()))
@@ -326,7 +326,7 @@ public class PaymentServiceTests
         {
             Id = bookingId,
             UserId = userId,
-            Status = BookingStatus.WaitingForDriver,
+            Status = BookingStatus.PaymentPending,
             RequiresDriver = true,
             AssignedDriverProfileId = null,
             TotalPrice = 150.00m
