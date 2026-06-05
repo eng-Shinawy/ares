@@ -232,7 +232,13 @@ export default function AdminDriversClient() {
       </Typography>
 
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
-        <Tabs value={tab} onChange={(_, v) => { setTab(v); }} aria-label="driver tabs">
+        <Tabs
+          value={tab}
+          onChange={(_, v) => {
+            setTab(v);
+          }}
+          aria-label="driver tabs"
+        >
           <Tab label="All Drivers" />
           <Tab label="Pending Verification" />
         </Tabs>
@@ -243,7 +249,9 @@ export default function AdminDriversClient() {
           size="small"
           label="Search by name, email or phone"
           value={search}
-          onChange={e => { setSearch(e.target.value); }}
+          onChange={e => {
+            setSearch(e.target.value);
+          }}
           sx={{ minWidth: 280 }}
         />
         {tab === 0 && (
@@ -252,7 +260,9 @@ export default function AdminDriversClient() {
             select
             label="Status"
             value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); }}
+            onChange={e => {
+              setStatusFilter(e.target.value);
+            }}
             sx={{ minWidth: 200 }}
           >
             {STATUS_FILTERS.map(s => (
@@ -284,7 +294,11 @@ export default function AdminDriversClient() {
           </Typography>
         </Paper>
       ) : (
-        <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
+        <TableContainer
+          component={Paper}
+          elevation={0}
+          sx={{ borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}
+        >
           <Table sx={{ minWidth: 800 }}>
             <TableHead sx={{ bgcolor: "background.default" }}>
               <TableRow>
@@ -294,7 +308,9 @@ export default function AdminDriversClient() {
                 <TableCell sx={{ fontWeight: 700 }}>Availability</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Rating</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Active</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -309,11 +325,17 @@ export default function AdminDriversClient() {
                   <TableCell>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                       <Rating value={d.averageRating} readOnly size="small" precision={0.5} />
-                      <Typography variant="caption" color="text.secondary">({d.totalTrips})</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        ({d.totalTrips})
+                      </Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <Chip label={d.isActive ? "Active" : "Disabled"} color={d.isActive ? "success" : "default"} size="small" />
+                    <Chip
+                      label={d.isActive ? "Active" : "Disabled"}
+                      color={d.isActive ? "success" : "default"}
+                      size="small"
+                    />
                   </TableCell>
                   <TableCell align="right">
                     <Button size="small" variant="outlined" onClick={() => openDetails(d.driverProfileId)}>
@@ -345,17 +367,25 @@ export default function AdminDriversClient() {
                   {details.firstName?.[0] ?? "D"}
                 </Avatar>
                 <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>{fullName(details)}</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    {fullName(details)}
+                  </Typography>
                   <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 0.5 }}>
                     <Chip label={details.status} color={statusColor(details.status)} size="small" />
                     <Chip label={`Availability: ${details.availability}`} size="small" variant="outlined" />
-                    <Chip label={details.isActive ? "Active" : "Disabled"} color={details.isActive ? "success" : "default"} size="small" />
+                    <Chip
+                      label={details.isActive ? "Active" : "Disabled"}
+                      color={details.isActive ? "success" : "default"}
+                      size="small"
+                    />
                   </Box>
                 </Box>
                 <Box sx={{ ml: "auto", textAlign: "right" }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, justifyContent: "flex-end" }}>
                     <Rating value={details.averageRating} readOnly size="small" precision={0.5} />
-                    <Typography variant="caption" color="text.secondary">({details.totalTrips} trips)</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      ({details.totalTrips} trips)
+                    </Typography>
                   </Box>
                 </Box>
               </Box>
@@ -364,29 +394,41 @@ export default function AdminDriversClient() {
 
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>EMAIL</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                    EMAIL
+                  </Typography>
                   <Typography variant="body2">{details.email || "—"}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>PHONE</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                    PHONE
+                  </Typography>
                   <Typography variant="body2">{details.phoneNumber || "—"}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>LICENSE NUMBER</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                    LICENSE NUMBER
+                  </Typography>
                   <Typography variant="body2">{details.licenseNumber || "—"}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>LICENSE EXPIRY</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                    LICENSE EXPIRY
+                  </Typography>
                   <Typography variant="body2">
                     {details.licenseExpiryDate ? format(new Date(details.licenseExpiryDate), "MMM d, yyyy") : "—"}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>ADDRESS</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                    ADDRESS
+                  </Typography>
                   <Typography variant="body2">{details.address || "—"}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>EMERGENCY CONTACT</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                    EMERGENCY CONTACT
+                  </Typography>
                   <Typography variant="body2">
                     {details.emergencyContactName || "—"}
                     {details.emergencyContactPhone ? ` (${details.emergencyContactPhone})` : ""}
@@ -395,9 +437,13 @@ export default function AdminDriversClient() {
               </Grid>
 
               <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Work Areas</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                  Work Areas
+                </Typography>
                 {details.workAreas.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">No work areas selected.</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    No work areas selected.
+                  </Typography>
                 ) : (
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
                     {details.workAreas.map(a => (
@@ -408,7 +454,9 @@ export default function AdminDriversClient() {
               </Box>
 
               <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Documents</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                  Documents
+                </Typography>
                 <Grid container spacing={2}>
                   {[
                     { label: "Driver License", url: details.licenseImage },
@@ -463,7 +511,9 @@ export default function AdminDriversClient() {
                   minRows={2}
                   label="Rejection reason"
                   value={rejectReason}
-                  onChange={e => { setRejectReason(e.target.value); }}
+                  onChange={e => {
+                    setRejectReason(e.target.value);
+                  }}
                 />
               )}
 
@@ -474,7 +524,13 @@ export default function AdminDriversClient() {
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, flexWrap: "wrap", gap: 1 }}>
-          <Button onClick={() => { setDetailsOpen(false); }} color="inherit" disabled={actionBusy}>
+          <Button
+            onClick={() => {
+              setDetailsOpen(false);
+            }}
+            color="inherit"
+            disabled={actionBusy}
+          >
             Close
           </Button>
           <Box sx={{ flex: 1 }} />
@@ -493,15 +549,16 @@ export default function AdminDriversClient() {
               {showRejectField ? "Confirm Reject" : "Reject"}
             </Button>
           )}
-          {details && (details.isActive ? (
-            <Button variant="outlined" color="warning" disabled={actionBusy} onClick={() => runAction("disable")}>
-              Disable
-            </Button>
-          ) : (
-            <Button variant="outlined" color="primary" disabled={actionBusy} onClick={() => runAction("enable")}>
-              Enable
-            </Button>
-          ))}
+          {details &&
+            (details.isActive ? (
+              <Button variant="outlined" color="warning" disabled={actionBusy} onClick={() => runAction("disable")}>
+                Disable
+              </Button>
+            ) : (
+              <Button variant="outlined" color="primary" disabled={actionBusy} onClick={() => runAction("enable")}>
+                Enable
+              </Button>
+            ))}
           {actionBusy && <CircularProgress size={22} sx={{ ml: 1 }} />}
         </DialogActions>
       </Dialog>
