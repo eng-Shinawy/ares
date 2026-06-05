@@ -174,7 +174,8 @@ public class GoogleAuthService : IGoogleAuthService
                 LastName: user.LastName ?? string.Empty,
                 Roles: roles.ToList(),
                 EmailVerified: user.EmailConfirmed,
-                Status: user.Status
+                Status: user.Status,
+                Phone: user.PhoneNumber
             )
         );
     }
@@ -246,6 +247,7 @@ public class GoogleAuthService : IGoogleAuthService
             EmailVerifiedAt = DateTime.UtcNow,
             GoogleId = payload.Subject,
             AuthProvider = "Google",
+            Status = "Active"
         };
 
         var randomPassword = GenerateSecureRandomPassword();

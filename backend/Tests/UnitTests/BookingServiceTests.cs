@@ -29,8 +29,12 @@ public class BookingServiceTests
         _userManagerMock = MockUserManager();
 
         var emptyUserAddresses = new List<UserAddress>().AsQueryable();
-        var userAddressesDbSet = CreateMockDbSet(emptyUserAddresses);
+        var userAddressesDbSet = emptyUserAddresses.BuildMockDbSet();
         _contextMock.Setup(x => x.UserAddresses).Returns(userAddressesDbSet.Object);
+
+        var emptyDrivers = new List<Driver>().AsQueryable();
+        var driversDbSet = emptyDrivers.BuildMockDbSet();
+        _contextMock.Setup(x => x.Drivers).Returns(driversDbSet.Object);
 
         _bookingService = new BookingService(
             _bookingRepositoryMock.Object,
@@ -109,8 +113,8 @@ public class BookingServiceTests
         _bookingRepositoryMock.Setup(x => x.AddAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(It.IsAny<Booking>());
 
-        _bookingRepositoryMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+        _bookingRepositoryMock.Setup(x => x.ReserveVehicleAtomicAsync(It.IsAny<Booking>(), It.IsAny<BookingStatus>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _bookingService.CreateBookingAsync(request, userId);
@@ -119,14 +123,14 @@ public class BookingServiceTests
         Assert.NotNull(result);
         Assert.NotEqual(Guid.Empty, result.BookingId);
         Assert.StartsWith("BK-", result.BookingNumber);
-        Assert.Equal(BookingStatus.Pending.ToString(), result.Status);
+        Assert.Equal(BookingStatus.Confirmed.ToString(), result.Status);
         Assert.Equal(100.00m, result.TotalPrice); // 2 days * $50
         Assert.Equal("Booking created successfully", result.Message);
 
         _vehicleRepositoryMock.Verify(x => x.IsAvailableAsync(vehicleId, pickupDate, returnDate, It.IsAny<CancellationToken>()), Times.Once);
         _vehicleRepositoryMock.Verify(x => x.GetByIdAsync(vehicleId, It.IsAny<CancellationToken>()), Times.Once);
         _bookingRepositoryMock.Verify(x => x.AddAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()), Times.Once);
-        _bookingRepositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _bookingRepositoryMock.Verify(x => x.ReserveVehicleAtomicAsync(It.IsAny<Booking>(), It.IsAny<BookingStatus>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
     [Fact]
     public async Task CreateBookingAsync_WhenCustomerIsAdmin_ShouldThrowForbiddenException()
@@ -331,8 +335,8 @@ public class BookingServiceTests
         _bookingRepositoryMock.Setup(x => x.AddAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(It.IsAny<Booking>());
 
-        _bookingRepositoryMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+        _bookingRepositoryMock.Setup(x => x.ReserveVehicleAtomicAsync(It.IsAny<Booking>(), It.IsAny<BookingStatus>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _bookingService.CreateBookingAsync(request, userId);
@@ -340,7 +344,7 @@ public class BookingServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal(400.00m, result.TotalPrice); // 4 days * $100
-        Assert.Equal(BookingStatus.Pending.ToString(), result.Status);
+        Assert.Equal(BookingStatus.Confirmed.ToString(), result.Status);
 
         _bookingRepositoryMock.Verify(x => x.AddAsync(It.Is<Booking>(b =>
             b.DriverId == driverId &&
@@ -389,8 +393,8 @@ public class BookingServiceTests
         _bookingRepositoryMock.Setup(x => x.AddAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(It.IsAny<Booking>());
 
-        _bookingRepositoryMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+        _bookingRepositoryMock.Setup(x => x.ReserveVehicleAtomicAsync(It.IsAny<Booking>(), It.IsAny<BookingStatus>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _bookingService.CreateBookingAsync(request, userId);
@@ -438,8 +442,8 @@ public class BookingServiceTests
         _bookingRepositoryMock.Setup(x => x.AddAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(It.IsAny<Booking>());
 
-        _bookingRepositoryMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+        _bookingRepositoryMock.Setup(x => x.ReserveVehicleAtomicAsync(It.IsAny<Booking>(), It.IsAny<BookingStatus>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         var result1 = await _bookingService.CreateBookingAsync(request, userId);
