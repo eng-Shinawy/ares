@@ -112,7 +112,12 @@ public class BookingService : IBookingService
             throw new ValidationException("DateRange", "Pickup date must be before return date");
         }
 
-        // Requirement 4.3: Check vehicle availability for date range
+        // Requirement 4.3: Check vehicle availability for date range.
+        // NOTE: This is an OPTIMISTIC pre-check only — it fails fast with a
+        // clean message before we do the heavier work below. It is NOT the
+        // race-condition guard. The authoritative, race-safe reservation is
+        // performed under a pessimistic lock by ReserveVehicleAtomicAsync at
+        // persistence time (see the "Race-safe persistence" block below).
         // (ordering preserved to keep existing unit-test expectations stable).
         var isAvailable = await _vehicleRepository.IsAvailableAsync(
             request.VehicleId,
@@ -206,7 +211,7 @@ public class BookingService : IBookingService
             // populates AssignedDriverProfileId (a driver_profiles FK). The
             // legacy Booking.DriverId column is a FK to the customer-license
             // Driver entity and must not be conflated with a DriverProfile.
-            Status = effectiveNeedDriver == true ? BookingStatus.WaitingForDriver : BookingStatus.Pending,
+            Status = BookingStatus.Confirmed,
             DriverId = request.DriverId, // legacy customer-license Driver FK only
             RequiresDriver = effectiveNeedDriver == true
         };
@@ -218,9 +223,42 @@ public class BookingService : IBookingService
             booking.Vehicle = null; // Detach before save
         }
 
-        // Requirement 4.1: Create booking and mark vehicle as unavailable for those dates
+        // ── Race-safe persistence (P0: double-booking fix) ───────────────
+        // Previously this method inserted the booking with a bare
+        // AddAsync + SaveChangesAsync. Between the optimistic IsAvailableAsync
+        // pre-check above and that insert there was a TOCTOU window: two
+        // concurrent admin/direct creations for the same vehicle + overlapping
+        // window could BOTH observe "available" and BOTH insert, double-booking
+        // the vehicle.
+        //
+        // The fix routes persistence through the SAME pessimistic-locking
+        // mechanism CheckoutService uses — IBookingRepository.ReserveVehicleAtomicAsync.
+        // That method:
+        //   1. Opens an explicit transaction
+        //      (IApplicationDbContext.Database.BeginTransactionAsync,
+        //       IsolationLevel.Serializable, via the EF execution strategy).
+        //   2. Acquires a range lock on this VehicleId's overlapping bookings
+        //      using the raw SQL pessimistic lock WITH (UPDLOCK, HOLDLOCK).
+        //   3. Re-checks availability UNDER THE LOCK (phantom-insert safe).
+        //   4. Inserts/commits the staged booking atomically.
+        //   5. Commits — or rolls back and throws ConflictException (HTTP 409)
+        //      for the loser of a concurrent race.
+        //
+        // AddAsync only STAGES the entity on the shared DbContext (no save);
+        // ReserveVehicleAtomicAsync performs the single SaveChanges inside the
+        // locked transaction. A direct booking has no payment hold, so the
+        // hold timestamps are null. The target status is the one already
+        // computed above (Pending, or WaitingForDriver when a driver is
+        // required) — both are reserving statuses, so they participate in the
+        // overlap check.
+        var targetStatus = booking.Status;
         await _bookingRepository.AddAsync(booking, cancellationToken);
-        await _bookingRepository.SaveChangesAsync(cancellationToken);
+        await _bookingRepository.ReserveVehicleAtomicAsync(
+            booking,
+            targetStatus,
+            holdStartedAt: null,
+            holdExpiresAt: null,
+            cancellationToken);
 
         if (effectiveNeedDriver == true && _driverRequestService != null)
         {
@@ -245,7 +283,7 @@ public class BookingService : IBookingService
         return new BookingResponse(
             booking.Id,
             bookingNumber,
-            "Pending",
+            booking.Status.ToString(),
             totalPrice,
             "Booking created successfully"
         );
@@ -504,7 +542,7 @@ public class BookingService : IBookingService
         // - Pending  = bookings awaiting confirmation
         // - Completed = ALL completed bookings (lifetime), not today only
         var activeBookings = await query.CountAsync(b => b.Status == BookingStatus.Active, cancellationToken);
-        var pendingBookings = await query.CountAsync(b => b.Status == BookingStatus.Pending, cancellationToken);
+        var pendingBookings = await query.CountAsync(b => b.Status == BookingStatus.Confirmed, cancellationToken);
         var totalCompletedBookings = await query.CountAsync(b => b.Status == BookingStatus.Completed, cancellationToken);
 
         return new AdminBookingStatsDto(activeBookings, pendingBookings, totalCompletedBookings);
@@ -733,7 +771,7 @@ public class BookingService : IBookingService
 
         // Whitelist the operationally supported statuses — keeps the legacy
         // inspection-workflow statuses out of the simple change-status flow.
-        var allowed = parsed is BookingStatus.Pending
+        var allowed = parsed is BookingStatus.Confirmed
                               or BookingStatus.Active
                               or BookingStatus.Completed
                               or BookingStatus.Cancelled;
@@ -1391,7 +1429,7 @@ public class BookingService : IBookingService
         // If neither an inspector nor a non-default mirror status is set,
         // suppress the section to keep the payload lean.
         if (booking.AssignedInspectorId is null &&
-            booking.InspectionStatus == BookingInspectionStatus.NotRequired)
+            booking.InspectionStatus == InspectionStatus.NotRequired)
         {
             return Task.FromResult<BookingInspectionOverviewDto?>(null);
         }
