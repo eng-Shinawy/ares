@@ -26,6 +26,7 @@ export interface TopVehicle {
   bookingsCount: number;
   revenue: number;
   imageUrl: string;
+  trendPercentage: number;
 }
 
 export interface AlertActivity {
@@ -54,24 +55,24 @@ export const mockVehicleStatusData: VehicleStatusData[] = [
 
 export const mockCityVehicleData: Record<string, VehicleStatusData[]> = {
   "All Cities": mockVehicleStatusData,
-  "Cairo": [
+  Cairo: [
     { name: "Available", value: 65, color: "status.active.main" },
     { name: "Booked", value: 80, color: "status.confirmed.main" },
     { name: "Maintenance", value: 10, color: "status.pending.main" },
     { name: "Out of Service", value: 2, color: "status.blocked.main" },
   ],
-  "Alexandria": [
+  Alexandria: [
     { name: "Available", value: 40, color: "status.active.main" },
     { name: "Booked", value: 25, color: "status.confirmed.main" },
     { name: "Maintenance", value: 3, color: "status.pending.main" },
     { name: "Out of Service", value: 1, color: "status.blocked.main" },
   ],
-  "Giza": [
+  Giza: [
     { name: "Available", value: 40, color: "status.active.main" },
     { name: "Booked", value: 15, color: "status.confirmed.main" },
     { name: "Maintenance", value: 2, color: "status.pending.main" },
     { name: "Out of Service", value: 2, color: "status.blocked.main" },
-  ]
+  ],
 };
 
 export const mockQuickActions: QuickAction[] = [

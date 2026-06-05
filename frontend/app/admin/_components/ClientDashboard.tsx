@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Grid, useTheme } from "@mui/material";
+import { Box, Grid } from "@mui/material";
 import { motion } from "framer-motion";
 import WelcomeHeader from "./WelcomeHeader";
 import StatsGrid from "./StatsGrid";
@@ -11,13 +11,16 @@ import QuickActions from "./QuickActions";
 import ActivityFeed from "./ActivityFeed";
 import SystemStatusCard from "./SystemStatusCard";
 
+import { DashboardSummary, RecentBooking, UpcomingBooking, ActivityItem } from "../types";
+import { StatItem } from "./StatsGrid";
+
 interface DashboardProps {
-  summary: any;
-  recentBookings: any[];
-  upcomingBookings: any[];
-  activities: any[];
-  revenueData: { date: string; revenue: number }[];
-  userFirstName?: string;
+  readonly summary: DashboardSummary;
+  readonly recentBookings: readonly RecentBooking[];
+  readonly upcomingBookings: readonly UpcomingBooking[];
+  readonly activities: readonly ActivityItem[];
+  readonly revenueData: readonly { readonly date: string; readonly revenue: number }[];
+  readonly userFirstName?: string;
 }
 
 const containerVariants = {
@@ -36,10 +39,8 @@ export default function ClientDashboard({
   revenueData,
   userFirstName,
 }: DashboardProps) {
-  const theme = useTheme();
-
   // Prepare stats for grid
-  const stats = [
+  const stats: readonly StatItem[] = [
     {
       title: "Total Bookings",
       value: summary.totalBookings.toLocaleString(),

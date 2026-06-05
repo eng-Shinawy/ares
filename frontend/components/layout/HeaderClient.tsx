@@ -103,7 +103,8 @@ export default function HeaderClient({ session }: HeaderClientProps) {
   const isAdmin = session?.user.roles.includes("Admin");
 
   const pathname = usePathname();
-  const isDashboardRoute = pathname?.startsWith("/admin") || pathname?.startsWith("/supplier") || pathname?.startsWith("/inspector");
+  const isDashboardRoute =
+    pathname.startsWith("/admin") || pathname.startsWith("/supplier") || pathname.startsWith("/inspector");
 
   if (isDashboardRoute) {
     return null;

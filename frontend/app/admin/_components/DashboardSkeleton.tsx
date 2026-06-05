@@ -6,7 +6,7 @@ export default function DashboardSkeleton() {
       <Skeleton variant="text" width={300} height={60} sx={{ mb: 1 }} />
       <Skeleton variant="text" width={200} height={30} sx={{ mb: 4 }} />
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {[1, 2, 3, 4].map((i) => (
+        {[1, 2, 3, 4].map(i => (
           <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
             <Card>
               <CardContent>
@@ -20,10 +20,18 @@ export default function DashboardSkeleton() {
       </Grid>
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, lg: 8 }}>
-          <Card><CardContent><Skeleton variant="rectangular" height={300} /></CardContent></Card>
+          <Card>
+            <CardContent>
+              <Skeleton variant="rectangular" height={300} />
+            </CardContent>
+          </Card>
         </Grid>
         <Grid size={{ xs: 12, lg: 4 }}>
-          <Card><CardContent><Skeleton variant="rectangular" height={300} /></CardContent></Card>
+          <Card>
+            <CardContent>
+              <Skeleton variant="rectangular" height={300} />
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
     </Box>

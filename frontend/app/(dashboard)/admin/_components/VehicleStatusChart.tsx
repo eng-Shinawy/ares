@@ -1,22 +1,31 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, Typography, Box, useTheme, Select, MenuItem, FormControl } from "@mui/material";
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, Label } from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Tooltip, Legend, Label, Sector } from "recharts";
 import { VehicleStatusData, mockCityVehicleData } from "./mockData";
 
-export default function VehicleStatusChart({ data }: { data: VehicleStatusData[] }) {
+export default function VehicleStatusChart({ data }: { readonly data: readonly VehicleStatusData[] }) {
   const theme = useTheme();
   const [selectedCity, setSelectedCity] = useState("All Cities");
 
   // Helper to extract theme colors using string paths (e.g. "status.active.main")
-  const getThemeColor = (path: string) => {
-    return path.split('.').reduce((o, i) => (o as any)?.[i], theme.palette) as unknown as string || theme.palette.primary.main;
+  const getThemeColor = (path: string): string => {
+    const parts = path.split(".");
+    let current: unknown = theme.palette;
+    for (const part of parts) {
+      if (current && typeof current === "object" && part in current) {
+        current = (current as Record<string, unknown>)[part];
+      } else {
+        return theme.palette.primary.main;
+      }
+    }
+    return typeof current === "string" ? current : theme.palette.primary.main;
   };
 
-  const displayData = selectedCity === "All Cities" ? data : (mockCityVehicleData[selectedCity] || data);
+  const displayData = selectedCity === "All Cities" ? data : mockCityVehicleData[selectedCity];
   const totalVehicles = displayData.reduce((acc, curr) => acc + curr.value, 0);
-  const cities = Object.keys(mockCityVehicleData);
+  const cities = Object.keys(mockCityVehicleData).filter(city => city !== "All Cities");
 
   return (
     <Card
@@ -32,17 +41,29 @@ export default function VehicleStatusChart({ data }: { data: VehicleStatusData[]
       }}
     >
       <CardContent sx={{ p: { xs: 2, sm: 3 }, flexGrow: 1, minWidth: 0 }}>
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 2, sm: 0 }, mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", sm: "center" },
+            gap: { xs: 2, sm: 0 },
+            mb: 3,
+          }}
+        >
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Vehicle Status
           </Typography>
           <FormControl size="small" sx={{ width: { xs: "100%", sm: "auto" } }}>
             <Select
               value={selectedCity}
-              onChange={(e) => setSelectedCity(e.target.value as string)}
+              onChange={e => {
+                setSelectedCity(e.target.value);
+              }}
               sx={{ minWidth: 120, borderRadius: 2 }}
             >
-              {cities.map((city) => (
+              <MenuItem value="All Cities">All Cities</MenuItem>
+              {cities.map(city => (
                 <MenuItem key={city} value={city}>
                   {city}
                 </MenuItem>
@@ -62,20 +83,33 @@ export default function VehicleStatusChart({ data }: { data: VehicleStatusData[]
                 paddingAngle={2}
                 dataKey="value"
                 stroke="none"
+                shape={(props: unknown) => {
+                  const p = props as { payload: { color: string } } & Record<string, unknown>;
+                  return <Sector {...p} fill={getThemeColor(p.payload.color)} />;
+                }}
               >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={getThemeColor(entry.color)} />
-                ))}
                 <Label
-                  content={(props: any) => {
-                    const { viewBox } = props;
-                    if (viewBox && viewBox.cx && viewBox.cy) {
+                  content={props => {
+                    const viewBox = props.viewBox;
+                    if (
+                      viewBox &&
+                      "cx" in viewBox &&
+                      "cy" in viewBox &&
+                      typeof viewBox.cx === "number" &&
+                      typeof viewBox.cy === "number"
+                    ) {
                       return (
                         <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="central">
                           <tspan x={viewBox.cx} y={viewBox.cy - 10} fontSize="14" fill={theme.palette.text.secondary}>
                             Total
                           </tspan>
-                          <tspan x={viewBox.cx} y={viewBox.cy + 18} fontSize="28" fontWeight="bold" fill={theme.palette.text.primary}>
+                          <tspan
+                            x={viewBox.cx}
+                            y={viewBox.cy + 18}
+                            fontSize="28"
+                            fontWeight="bold"
+                            fill={theme.palette.text.primary}
+                          >
                             {totalVehicles}
                           </tspan>
                         </text>
@@ -85,13 +119,13 @@ export default function VehicleStatusChart({ data }: { data: VehicleStatusData[]
                   }}
                 />
               </Pie>
-              <Tooltip 
-                contentStyle={{ 
-                  borderRadius: 12, 
+              <Tooltip
+                contentStyle={{
+                  borderRadius: 12,
                   border: `1px solid ${theme.palette.border.main}`,
                   boxShadow: theme.palette.shadow.card,
-                  backgroundColor: theme.palette.background.paper
-                }} 
+                  backgroundColor: theme.palette.background.paper,
+                }}
               />
               <Legend verticalAlign="bottom" height={36} />
             </PieChart>

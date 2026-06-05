@@ -35,7 +35,7 @@ import {
   Place as LocationsIcon,
 } from "@mui/icons-material";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 
 const drawerWidth = 280;
@@ -53,24 +53,29 @@ const menuItems = [
   { text: "Settings", icon: <SettingsIcon />, path: "/admin/settings" },
 ];
 
-export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
+export default function AdminLayoutClient({ children }: Readonly<{ children: React.ReactNode }>) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const pathname = usePathname();
   const { data: session } = useSession();
-  const router = useRouter();
 
-  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
-  const handleMenu = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
-  const handleClose = () => setAnchorEl(null);
-  const handleLogout = async () => await signOut({ callbackUrl: "/" });
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
+  const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/" });
+  };
 
-  const userName = session?.user?.firstName
-    ? `${session.user.firstName} ${session.user.lastName || ""}`
-    : "Admin User";
-  const initial = session?.user?.firstName ? session.user.firstName.charAt(0).toUpperCase() : "A";
+  const userName = session?.user.firstName ? `${session.user.firstName} ${session.user.lastName || ""}` : "Admin User";
+  const initial = session?.user.firstName ? session.user.firstName.charAt(0).toUpperCase() : "A";
 
   const drawer = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: "background.paper" }}>
@@ -86,37 +91,33 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
             justifyContent: "center",
           }}
         >
-          <Typography variant="h6" fontWeight="bold" color="white">
+          <Typography variant="h6" sx={{ fontWeight: "bold", color: "common.white" }}>
             A
           </Typography>
         </Box>
-        <Typography variant="h6" fontWeight="900" sx={{ letterSpacing: "-0.5px" }}>
+        <Typography variant="h6" sx={{ fontWeight: 900, letterSpacing: "-0.5px" }}>
           Ares Admin
         </Typography>
       </Toolbar>
       <Divider sx={{ mb: 2 }} />
       <List sx={{ px: 2, flex: 1, overflowY: "auto" }}>
-        {menuItems.map((item) => {
+        {menuItems.map(item => {
           const isActive = pathname === item.path;
           return (
             <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
               <Link href={item.path} passHref style={{ width: "100%", textDecoration: "none", color: "inherit" }}>
                 <ListItemButton
-                  onClick={() => isMobile && setMobileOpen(false)}
+                  onClick={() => {
+                    if (isMobile) {
+                      setMobileOpen(false);
+                    }
+                  }}
                   sx={{
                     borderRadius: 2,
-                    bgcolor: isActive
-                      ? theme.palette.mode === "dark"
-                        ? "rgba(144, 202, 249, 0.16)"
-                        : "primary.50"
-                      : "transparent",
+                    bgcolor: isActive ? "sidebar.activeBg" : "transparent",
                     color: isActive ? "primary.main" : "text.secondary",
                     "&:hover": {
-                      bgcolor: isActive
-                        ? theme.palette.mode === "dark"
-                          ? "rgba(144, 202, 249, 0.24)"
-                          : "primary.100"
-                        : "action.hover",
+                      bgcolor: isActive ? "sidebar.activeBg" : "action.hover",
                     },
                   }}
                 >
@@ -125,9 +126,13 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
                   </ListItemIcon>
                   <ListItemText
                     primary={item.text}
-                    primaryTypographyProps={{
-                      fontWeight: isActive ? 700 : 500,
-                      fontSize: "0.95rem",
+                    slotProps={{
+                      primary: {
+                        sx: {
+                          fontWeight: isActive ? 700 : 500,
+                          fontSize: "0.95rem",
+                        },
+                      },
                     }}
                   />
                 </ListItemButton>
@@ -139,13 +144,22 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
       <Box sx={{ p: 2 }}>
         <ListItem disablePadding>
           <ListItemButton
-            onClick={handleLogout}
+            onClick={() => {
+              void handleLogout();
+            }}
             sx={{ borderRadius: 2, color: "error.main", "&:hover": { bgcolor: "error.lighter" } }}
           >
             <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>
               <LogoutIcon />
             </ListItemIcon>
-            <ListItemText primary="Logout" primaryTypographyProps={{ fontWeight: 600 }} />
+            <ListItemText
+              primary="Logout"
+              slotProps={{
+                primary: {
+                  sx: { fontWeight: 600 },
+                },
+              }}
+            />
           </ListItemButton>
         </ListItem>
       </Box>
@@ -162,17 +176,12 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
           ml: { md: `${drawerWidth}px` },
           bgcolor: "background.paper",
           borderBottom: "1px solid",
-          borderColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+          borderColor: "border.main",
           color: "text.primary",
         }}
       >
         <Toolbar sx={{ height: 80 }}>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: "none" } }}
-          >
+          <IconButton color="inherit" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2, display: { md: "none" } }}>
             <MenuIcon />
           </IconButton>
           <Box sx={{ flexGrow: 1 }} />
@@ -182,11 +191,11 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
             </IconButton>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, cursor: "pointer" }} onClick={handleMenu}>
               <Box sx={{ textAlign: "right", display: { xs: "none", sm: "block" } }}>
-                <Typography variant="subtitle2" fontWeight="700">
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                   {userName}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {session?.user?.roles?.[0] || "Administrator"}
+                  {session?.user.roles[0] || "Administrator"}
                 </Typography>
               </Box>
               <Avatar sx={{ bgcolor: "primary.main", width: 44, height: 44 }}>{initial}</Avatar>
@@ -199,14 +208,18 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
               open={Boolean(anchorEl)}
               onClose={handleClose}
               sx={{ mt: 1 }}
-              PaperProps={{
-                elevation: 0,
-                sx: {
-                  overflow: "visible",
-                  filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.1))",
-                  mt: 1.5,
-                  borderRadius: 2,
-                  minWidth: 200,
+              slotProps={{
+                paper: {
+                  elevation: 0,
+                  sx: {
+                    overflow: "visible",
+                    filter: theme.palette.shadow.card,
+                    mt: 1.5,
+                    borderRadius: 2,
+                    minWidth: 200,
+                    border: "1px solid",
+                    borderColor: "border.main",
+                  },
                 },
               }}
             >
@@ -214,7 +227,12 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
                 <Avatar sx={{ width: 32, height: 32, mr: 1 }} /> Profile
               </MenuItem>
               <Divider />
-              <MenuItem onClick={handleLogout} sx={{ color: "error.main" }}>
+              <MenuItem
+                onClick={() => {
+                  void handleLogout();
+                }}
+                sx={{ color: "error.main" }}
+              >
                 <ListItemIcon sx={{ color: "inherit" }}>
                   <LogoutIcon fontSize="small" />
                 </ListItemIcon>
@@ -246,7 +264,7 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
               boxSizing: "border-box",
               width: drawerWidth,
               borderRight: "1px solid",
-              borderColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+              borderColor: "border.main",
             },
           }}
           open

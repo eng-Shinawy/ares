@@ -1,4 +1,3 @@
-import React from "react";
 import { Grid, Card, CardContent, Typography, Box } from "@mui/material";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
@@ -16,7 +15,16 @@ export interface SummaryItem {
   change: string;
   isUp: boolean;
   color: "primary" | "success" | "warning" | "error" | "info" | "secondary";
-  iconName: "Storefront" | "DirectionsCar" | "AttachMoney" | "PeopleAlt" | "EventAvailable" | "GppMaybe" | "PersonOutline" | "BuildCircle" | "Badge";
+  iconName:
+    | "Storefront"
+    | "DirectionsCar"
+    | "AttachMoney"
+    | "PeopleAlt"
+    | "EventAvailable"
+    | "GppMaybe"
+    | "PersonOutline"
+    | "BuildCircle"
+    | "Badge";
 }
 
 const IconMap = {
@@ -31,25 +39,31 @@ const IconMap = {
   Badge: BadgeIcon,
 };
 
-export default function StatCardGrid({ items }: { items: SummaryItem[] }) {
+export default function StatCardGrid({ items }: { readonly items: readonly SummaryItem[] }) {
   return (
     <Grid container spacing={3} sx={{ mb: 4 }}>
       {items.map((stat, i) => {
         const Icon = IconMap[stat.iconName];
-        
+
         // Map the basic color to the status theme colors to avoid hardcoding
-        const statusKey = 
-          stat.color === "primary" ? "active" : 
-          stat.color === "success" ? "completed" : 
-          stat.color === "warning" ? "pending" : 
-          stat.color === "error" ? "cancelled" :
-          stat.color === "info" ? "active" : "pending";
+        const statusKey: "active" | "completed" | "pending" | "cancelled" | "confirmed" | "blocked" =
+          stat.color === "primary"
+            ? "active"
+            : stat.color === "success"
+              ? "completed"
+              : stat.color === "warning"
+                ? "pending"
+                : stat.color === "error"
+                  ? "cancelled"
+                  : stat.color === "info"
+                    ? "active"
+                    : "pending";
 
         return (
           <Grid size={{ xs: 6, sm: 4, lg: 2 }} key={i}>
             <Card
               elevation={0}
-              sx={(theme) => ({
+              sx={theme => ({
                 borderRadius: 2,
                 border: "1px solid",
                 borderColor: theme.palette.border.main,
@@ -58,7 +72,7 @@ export default function StatCardGrid({ items }: { items: SummaryItem[] }) {
                 transition: "box-shadow 0.2s ease-in-out",
                 "&:hover": {
                   boxShadow: theme.palette.shadow.cardHover,
-                }
+                },
               })}
             >
               <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
@@ -72,7 +86,7 @@ export default function StatCardGrid({ items }: { items: SummaryItem[] }) {
                     </Typography>
                   </Box>
                   <Box
-                    sx={(theme) => ({
+                    sx={theme => ({
                       p: 1,
                       display: "flex",
                       alignItems: "center",
@@ -85,11 +99,11 @@ export default function StatCardGrid({ items }: { items: SummaryItem[] }) {
                     <Icon />
                   </Box>
                 </Box>
-                <Typography 
-                  variant="caption" 
-                  sx={(theme) => ({ 
-                    fontWeight: 600, 
-                    color: stat.isUp ? theme.palette.status.active.main : theme.palette.status.cancelled.main 
+                <Typography
+                  variant="caption"
+                  sx={theme => ({
+                    fontWeight: 600,
+                    color: stat.isUp ? theme.palette.status.active.main : theme.palette.status.cancelled.main,
                   })}
                 >
                   {stat.change}

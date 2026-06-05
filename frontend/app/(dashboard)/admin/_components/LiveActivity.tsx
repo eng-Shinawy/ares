@@ -1,6 +1,18 @@
-import React from "react";
 import Link from "next/link";
-import { Card, CardContent, Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Avatar, Button } from "@mui/material";
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Avatar,
+  Button,
+} from "@mui/material";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
@@ -8,33 +20,43 @@ import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { RecentSummaryItem } from "../types";
 
-export default function LiveActivity({ activities }: { activities: RecentSummaryItem[] }) {
+export default function LiveActivity({ activities }: { readonly activities: readonly RecentSummaryItem[] }) {
   const getActivityIcon = (type: string) => {
-    switch (type?.toLowerCase()) {
-      case "booking": return <DirectionsCarIcon fontSize="small" />;
-      case "registration": return <PersonAddIcon fontSize="small" />;
-      case "inspection": return <AssignmentTurnedInIcon fontSize="small" />;
+    switch (type.toLowerCase()) {
+      case "booking":
+        return <DirectionsCarIcon fontSize="small" />;
+      case "registration":
+        return <PersonAddIcon fontSize="small" />;
+      case "inspection":
+        return <AssignmentTurnedInIcon fontSize="small" />;
       case "payment":
-      case "refund": return <AttachMoneyIcon fontSize="small" />;
-      default: return <NotificationsIcon fontSize="small" />;
+      case "refund":
+        return <AttachMoneyIcon fontSize="small" />;
+      default:
+        return <NotificationsIcon fontSize="small" />;
     }
   };
 
-  const getActivityColor = (type: string) => {
-    switch (type?.toLowerCase()) {
-      case "booking": return "primary";
-      case "registration": return "success";
-      case "inspection": return "warning";
+  const getActivityColor = (type: string): "primary" | "success" | "warning" | "error" | "info" => {
+    switch (type.toLowerCase()) {
+      case "booking":
+        return "primary";
+      case "registration":
+        return "success";
+      case "inspection":
+        return "warning";
       case "payment":
-      case "refund": return "error";
-      default: return "info";
+      case "refund":
+        return "error";
+      default:
+        return "info";
     }
   };
 
   return (
     <Card
       elevation={0}
-      sx={(theme) => ({
+      sx={theme => ({
         borderRadius: 2,
         border: "1px solid",
         borderColor: theme.palette.border.main,
@@ -43,7 +65,16 @@ export default function LiveActivity({ activities }: { activities: RecentSummary
       })}
     >
       <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 2, sm: 0 }, mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", sm: "center" },
+            gap: { xs: 2, sm: 0 },
+            mb: 3,
+          }}
+        >
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Recent Activity
           </Typography>
@@ -52,7 +83,12 @@ export default function LiveActivity({ activities }: { activities: RecentSummary
             href="/admin/activity"
             variant="text"
             size="small"
-            sx={{ fontWeight: 600, textTransform: "none", color: "primary.main", alignSelf: { xs: "flex-end", sm: "auto" } }}
+            sx={{
+              fontWeight: 600,
+              textTransform: "none",
+              color: "primary.main",
+              alignSelf: { xs: "flex-end", sm: "auto" },
+            }}
           >
             View All
           </Button>
@@ -61,8 +97,16 @@ export default function LiveActivity({ activities }: { activities: RecentSummary
           <Table sx={{ minWidth: 400 }} aria-label="recent activity table">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ color: "text.secondary", fontWeight: 600, borderBottom: "1px solid", borderColor: "divider" }}>Activity</TableCell>
-                <TableCell sx={{ color: "text.secondary", fontWeight: 600, borderBottom: "1px solid", borderColor: "divider" }}>Time</TableCell>
+                <TableCell
+                  sx={{ color: "text.secondary", fontWeight: 600, borderBottom: "1px solid", borderColor: "divider" }}
+                >
+                  Activity
+                </TableCell>
+                <TableCell
+                  sx={{ color: "text.secondary", fontWeight: 600, borderBottom: "1px solid", borderColor: "divider" }}
+                >
+                  Time
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -70,16 +114,22 @@ export default function LiveActivity({ activities }: { activities: RecentSummary
                 activities.map((activity, index) => {
                   const colorKey = getActivityColor(activity.type);
                   return (
-                    <TableRow key={index} sx={{ "&:last-child td, &:last-child th": { border: 0 }, "&:hover": { bgcolor: "action.hover" } }}>
+                    <TableRow
+                      key={index}
+                      sx={{ "&:last-child td, &:last-child th": { border: 0 }, "&:hover": { bgcolor: "action.hover" } }}
+                    >
                       <TableCell sx={{ borderBottom: "1px solid", borderColor: "divider" }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                           <Avatar
-                            sx={(theme) => ({
-                              bgcolor: (theme.palette as any)[colorKey].light,
-                              color: (theme.palette as any)[colorKey].main,
-                              width: 32,
-                              height: 32,
-                            })}
+                            sx={theme => {
+                              const color = theme.palette[colorKey];
+                              return {
+                                bgcolor: color.light,
+                                color: color.main,
+                                width: 32,
+                                height: 32,
+                              };
+                            }}
                           >
                             {getActivityIcon(activity.type)}
                           </Avatar>

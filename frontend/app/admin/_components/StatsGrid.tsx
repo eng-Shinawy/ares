@@ -7,10 +7,19 @@ import StatCard from "./StatCard";
 
 const itemVariants = {
   hidden: { y: 20, opacity: 0 },
-  visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 24 } },
+  visible: { y: 0, opacity: 1, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
 };
 
-export default function StatsGrid({ stats }: { stats: any[] }) {
+export interface StatItem {
+  readonly title: string;
+  readonly value: string | number;
+  readonly change: string;
+  readonly isUp: boolean;
+  readonly icon: "EventAvailable" | "DirectionsCar" | "AttachMoney" | "PeopleAlt";
+  readonly color: "primary" | "secondary" | "success" | "warning" | "error" | "info";
+}
+
+export default function StatsGrid({ stats }: { readonly stats: readonly StatItem[] }) {
   return (
     <Grid container spacing={3} sx={{ mb: 4 }}>
       {stats.map((stat, index) => (

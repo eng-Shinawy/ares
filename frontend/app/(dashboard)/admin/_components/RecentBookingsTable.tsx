@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import {
   Card,
@@ -16,7 +15,6 @@ import {
   TableBody,
   Chip,
   Avatar,
-  Stack,
 } from "@mui/material";
 
 export interface BookingListItem {
@@ -29,12 +27,15 @@ export interface BookingListItem {
   amount: string;
 }
 
-export default function RecentBookingsTable({ bookings }: { bookings: BookingListItem[] }) {
-
+export default function RecentBookingsTable({
+  bookings,
+}: Readonly<{
+  readonly bookings: readonly BookingListItem[];
+}>) {
   return (
     <Card
       elevation={0}
-      sx={(theme) => ({
+      sx={theme => ({
         borderRadius: 2,
         border: "1px solid",
         borderColor: theme.palette.border.main,
@@ -43,7 +44,16 @@ export default function RecentBookingsTable({ bookings }: { bookings: BookingLis
       })}
     >
       <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 2, sm: 0 }, mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", sm: "center" },
+            gap: { xs: 2, sm: 0 },
+            mb: 3,
+          }}
+        >
           <Typography variant="h6" sx={{ fontWeight: "700" }}>
             Recent Bookings
           </Typography>
@@ -52,7 +62,12 @@ export default function RecentBookingsTable({ bookings }: { bookings: BookingLis
             href="/admin/bookings"
             variant="text"
             size="small"
-            sx={{ fontWeight: 600, textTransform: "none", color: "primary.main", alignSelf: { xs: "flex-end", sm: "auto" } }}
+            sx={{
+              fontWeight: 600,
+              textTransform: "none",
+              color: "primary.main",
+              alignSelf: { xs: "flex-end", sm: "auto" },
+            }}
           >
             View All
           </Button>
@@ -61,28 +76,71 @@ export default function RecentBookingsTable({ bookings }: { bookings: BookingLis
           <Table sx={{ minWidth: 600 }}>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ color: "text.secondary", fontWeight: "600", borderBottom: "2px solid", borderColor: "divider" }}>
+                <TableCell
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: "600",
+                    borderBottom: "2px solid",
+                    borderColor: "divider",
+                  }}
+                >
                   Booking ID
                 </TableCell>
-                <TableCell sx={{ color: "text.secondary", fontWeight: "600", borderBottom: "2px solid", borderColor: "divider" }}>
+                <TableCell
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: "600",
+                    borderBottom: "2px solid",
+                    borderColor: "divider",
+                  }}
+                >
                   Customer
                 </TableCell>
-                <TableCell sx={{ color: "text.secondary", fontWeight: "600", borderBottom: "2px solid", borderColor: "divider" }}>
+                <TableCell
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: "600",
+                    borderBottom: "2px solid",
+                    borderColor: "divider",
+                  }}
+                >
                   Vehicle
                 </TableCell>
-                <TableCell sx={{ color: "text.secondary", fontWeight: "600", borderBottom: "2px solid", borderColor: "divider" }}>
+                <TableCell
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: "600",
+                    borderBottom: "2px solid",
+                    borderColor: "divider",
+                  }}
+                >
                   Date
                 </TableCell>
-                <TableCell sx={{ color: "text.secondary", fontWeight: "600", borderBottom: "2px solid", borderColor: "divider" }}>
+                <TableCell
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: "600",
+                    borderBottom: "2px solid",
+                    borderColor: "divider",
+                  }}
+                >
                   Amount
                 </TableCell>
-                <TableCell sx={{ color: "text.secondary", fontWeight: "600", borderBottom: "2px solid", borderColor: "divider", textAlign: "right" }}>
+                <TableCell
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: "600",
+                    borderBottom: "2px solid",
+                    borderColor: "divider",
+                    textAlign: "right",
+                  }}
+                >
                   Status
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {bookings.map((row) => (
+              {bookings.map(row => (
                 <TableRow key={row.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                   <TableCell sx={{ fontWeight: "600" }}>
                     {row.id.length > 8 ? row.id.substring(0, 8).toUpperCase() : row.id}
@@ -102,19 +160,22 @@ export default function RecentBookingsTable({ bookings }: { bookings: BookingLis
                     <Chip
                       label={row.status}
                       size="small"
-                      sx={(theme) => {
-                        const statusKey = 
-                          row.status === "Active" ? "active" :
-                          row.status === "Completed" ? "completed" :
-                          row.status === "Pending" ? "pending" :
-                          "cancelled";
-                          
+                      sx={theme => {
+                        const statusKey: "active" | "completed" | "pending" | "cancelled" | "confirmed" | "blocked" =
+                          row.status === "Active"
+                            ? "active"
+                            : row.status === "Completed"
+                              ? "completed"
+                              : row.status === "Pending"
+                                ? "pending"
+                                : "cancelled";
+
                         return {
                           fontWeight: "700",
                           borderRadius: 2,
                           bgcolor: theme.palette.status[statusKey].light,
                           color: theme.palette.status[statusKey].main,
-                          "& .MuiChip-label": { px: 2 }
+                          "& .MuiChip-label": { px: 2 },
                         };
                       }}
                     />

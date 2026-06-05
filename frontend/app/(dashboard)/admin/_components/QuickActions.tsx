@@ -1,4 +1,3 @@
-import React from "react";
 import { Card, CardContent, Typography, Box, Button, Grid } from "@mui/material";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
@@ -18,11 +17,11 @@ const IconMap = {
   FactCheck: FactCheckIcon,
 };
 
-export default function QuickActions({ actions }: { actions: QuickAction[] }) {
+export default function QuickActions({ actions }: Readonly<{ actions: readonly QuickAction[] }>) {
   return (
     <Card
       elevation={0}
-      sx={(theme) => ({
+      sx={theme => ({
         borderRadius: 2,
         border: "1px solid",
         borderColor: theme.palette.border.main,
@@ -34,7 +33,7 @@ export default function QuickActions({ actions }: { actions: QuickAction[] }) {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
           Quick Actions
         </Typography>
-        <Grid container spacing={2} >
+        <Grid container spacing={2}>
           {actions.map((action, i) => {
             const Icon = IconMap[action.icon as keyof typeof IconMap];
             return (
@@ -44,7 +43,7 @@ export default function QuickActions({ actions }: { actions: QuickAction[] }) {
                   component={Link}
                   href={action.path}
                   disableElevation
-                  sx={(theme) => ({
+                  sx={theme => ({
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
@@ -62,19 +61,25 @@ export default function QuickActions({ actions }: { actions: QuickAction[] }) {
                       bgcolor: theme.palette.background.paper,
                       boxShadow: theme.palette.shadow.cardHover,
                       borderColor: theme.palette.border.main,
-                      transform: "translateY(-2px)"
-                    }
+                      transform: "translateY(-2px)",
+                    },
                   })}
                 >
                   <Box
-                    sx={(theme) => {
-                      const statusKey = 
-                        action.color === "primary" ? "active" : 
-                        action.color === "success" ? "completed" : 
-                        action.color === "warning" ? "pending" : 
-                        action.color === "error" ? "cancelled" :
-                        action.color === "info" ? "active" : "pending";
-                        
+                    sx={theme => {
+                      const statusKey: "active" | "completed" | "pending" | "cancelled" | "confirmed" | "blocked" =
+                        action.color === "primary"
+                          ? "active"
+                          : action.color === "success"
+                            ? "completed"
+                            : action.color === "warning"
+                              ? "pending"
+                              : action.color === "error"
+                                ? "cancelled"
+                                : action.color === "info"
+                                  ? "active"
+                                  : "pending";
+
                       return {
                         bgcolor: theme.palette.status[statusKey].light,
                         color: theme.palette.status[statusKey].main,
@@ -83,7 +88,7 @@ export default function QuickActions({ actions }: { actions: QuickAction[] }) {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        mb: 1
+                        mb: 1,
                       };
                     }}
                   >
