@@ -1,44 +1,55 @@
 // app/admin/components/ActivityFeed.tsx
 "use client";
 
-import { Card, CardContent, Typography, List, ListItem, ListItemText, ListItemIcon, Avatar, useTheme, Box } from "@mui/material";
+import { Card, CardContent, Typography, List, ListItem, ListItemText, ListItemIcon, Avatar, Box } from "@mui/material";
 import { AccessTime, EventNote, Person, DirectionsCar, Payment } from "@mui/icons-material";
 
 const getActivityIcon = (type: string) => {
   switch (type) {
-    case "booking": return <EventNote />;
-    case "user": return <Person />;
-    case "vehicle": return <DirectionsCar />;
-    case "payment": return <Payment />;
-    default: return <AccessTime />;
+    case "booking":
+      return <EventNote />;
+    case "user":
+      return <Person />;
+    case "vehicle":
+      return <DirectionsCar />;
+    case "payment":
+      return <Payment />;
+    default:
+      return <AccessTime />;
   }
 };
 
-export default function ActivityFeed({ activities }: { activities: any[] }) {
-  const theme = useTheme();
+interface Activity {
+  id: string | number;
+  type: string;
+  action: string;
+  user: string;
+  timestamp: string | Date;
+}
 
+export default function ActivityFeed({ activities }: Readonly<{ activities: readonly Activity[] }>) {
   return (
     <Card
       elevation={0}
-      sx={{
+      sx={theme => ({
         borderRadius: 4,
         border: "1px solid",
-        borderColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+        borderColor: theme.palette.border.main,
         height: "100%",
-        p:2,
-        mt:3,
-        mb:3,
-      }}
+        p: 2,
+        mt: 3,
+        mb: 3,
+      })}
     >
       <CardContent>
-        <Typography variant="h6" fontWeight="700" gutterBottom>
+        <Typography variant="h6" sx={{ fontWeight: 700 }} gutterBottom>
           Recent Activity
         </Typography>
         <List sx={{ maxHeight: 400, overflow: "auto" }}>
-          {activities.map((activity) => (
+          {activities.map(activity => (
             <ListItem key={activity.id} divider>
               <ListItemIcon>
-                <Avatar sx={{ bgcolor: `${theme.palette.primary.main}20`, color: "primary.main" }}>
+                <Avatar sx={{ bgcolor: "primary.light", color: "primary.main" }}>
                   {getActivityIcon(activity.type)}
                 </Avatar>
               </ListItemIcon>

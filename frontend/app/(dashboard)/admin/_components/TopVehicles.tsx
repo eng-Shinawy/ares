@@ -1,13 +1,12 @@
-import React from "react";
 import Link from "next/link";
 import { Card, CardContent, Typography, Box, Stack, Button } from "@mui/material";
 import { TopVehicle } from "./mockData";
 
-export default function TopVehicles({ vehicles }: { vehicles: TopVehicle[] }) {
+export default function TopVehicles({ vehicles }: Readonly<{ readonly vehicles: readonly TopVehicle[] }>) {
   return (
     <Card
       elevation={0}
-      sx={(theme) => ({
+      sx={theme => ({
         borderRadius: 2,
         border: "1px solid",
         borderColor: theme.palette.border.main,
@@ -16,7 +15,16 @@ export default function TopVehicles({ vehicles }: { vehicles: TopVehicle[] }) {
       })}
     >
       <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 2, sm: 0 }, mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", sm: "center" },
+            gap: { xs: 2, sm: 0 },
+            mb: 3,
+          }}
+        >
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Top Vehicles by Bookings
           </Typography>
@@ -25,13 +33,18 @@ export default function TopVehicles({ vehicles }: { vehicles: TopVehicle[] }) {
             href="/admin/vehicles"
             variant="text"
             size="small"
-            sx={{ fontWeight: 600, textTransform: "none", color: "primary.main", alignSelf: { xs: "flex-end", sm: "auto" } }}
+            sx={{
+              fontWeight: 600,
+              textTransform: "none",
+              color: "primary.main",
+              alignSelf: { xs: "flex-end", sm: "auto" },
+            }}
           >
             View All
           </Button>
         </Box>
         <Stack spacing={3}>
-          {vehicles.map((vehicle) => {
+          {vehicles.map(vehicle => {
             const isUp = vehicle.trendPercentage > 0;
             const trendColor = isUp ? "success.main" : "error.main";
             const trendIcon = isUp ? "↑" : "↓";
@@ -42,14 +55,14 @@ export default function TopVehicles({ vehicles }: { vehicles: TopVehicle[] }) {
                   component="img"
                   src={vehicle.imageUrl}
                   alt={`${vehicle.make} ${vehicle.model}`}
-                  sx={(theme) => ({
+                  sx={theme => ({
                     width: 80,
                     height: 60,
                     objectFit: "cover",
                     borderRadius: 2,
                     border: "1px solid",
                     borderColor: theme.palette.border.light,
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                    boxShadow: theme.palette.shadow.card,
                   })}
                 />
                 <Box sx={{ flexGrow: 1 }}>

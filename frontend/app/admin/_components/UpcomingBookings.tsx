@@ -1,36 +1,39 @@
 "use client";
 
-import { Card, CardContent, Typography, List, ListItem, ListItemText, Chip, Box, useTheme } from "@mui/material";
+import { Card, CardContent, Typography, List, ListItem, ListItemText, Chip, Box } from "@mui/material";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 
-export default function UpcomingBookings({ bookings }: { bookings: any[] }) {
-  const theme = useTheme();
+import { UpcomingBooking } from "../types";
 
+export default function UpcomingBookings({ bookings }: { readonly bookings: readonly UpcomingBooking[] }) {
   return (
     <Card
       elevation={0}
       sx={{
         borderRadius: 4,
         border: "1px solid",
-        borderColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+        borderColor: "border.main",
         height: "100%",
-        mb: 3 ,
+        mb: 3,
         mt: 3,
-        p:2,
-        
+        p: 2,
       }}
     >
       <CardContent>
-        <Typography variant="h6" fontWeight="700" gutterBottom>Upcoming Bookings</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 700 }} gutterBottom>
+          Upcoming Bookings
+        </Typography>
         <List>
-          {bookings.map((booking) => (
+          {bookings.map(booking => (
             <ListItem key={booking.id} divider sx={{ px: 0 }}>
               <ListItemText
                 primary={booking.customer}
                 secondary={
                   <Box component="span" sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
                     <CalendarTodayIcon fontSize="small" color="action" />
-                    <Typography variant="caption">{booking.pickupDate} → {booking.returnDate}</Typography>
+                    <Typography variant="caption">
+                      {booking.pickupDate} → {booking.returnDate}
+                    </Typography>
                   </Box>
                 }
               />
@@ -38,7 +41,9 @@ export default function UpcomingBookings({ bookings }: { bookings: any[] }) {
             </ListItem>
           ))}
           {bookings.length === 0 && (
-            <Typography color="text.secondary" sx={{ py: 2, textAlign: "center" }}>No upcoming bookings.</Typography>
+            <Typography color="text.secondary" sx={{ py: 2, textAlign: "center" }}>
+              No upcoming bookings.
+            </Typography>
           )}
         </List>
       </CardContent>

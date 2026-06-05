@@ -1,25 +1,28 @@
-import React from "react";
 import Link from "next/link";
-import { Card, CardContent, Typography, Box, Stack, Avatar, Button } from "@mui/material";
+import { Card, CardContent, Typography, Box, Stack, Avatar, Button, Palette } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { DashboardAlert } from "./mockData";
 
-export default function AlertsCenter({ alerts }: { alerts: DashboardAlert[] }) {
-  const getColorKey = (type: string) => {
+export default function AlertsCenter({ alerts }: { readonly alerts: readonly DashboardAlert[] }) {
+  const getColorKey = (type: string): keyof Pick<Palette, "error" | "warning" | "success" | "info"> => {
     switch (type) {
-      case "error": return "error";
-      case "warning": return "warning";
-      case "success": return "success";
+      case "error":
+        return "error";
+      case "warning":
+        return "warning";
+      case "success":
+        return "success";
       case "info":
-      default: return "info";
+      default:
+        return "info";
     }
   };
 
   return (
     <Card
       elevation={0}
-      sx={(theme) => ({
+      sx={theme => ({
         borderRadius: 2,
         border: "1px solid",
         borderColor: theme.palette.border.main,
@@ -28,7 +31,16 @@ export default function AlertsCenter({ alerts }: { alerts: DashboardAlert[] }) {
       })}
     >
       <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 2, sm: 0 }, mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", sm: "center" },
+            gap: { xs: 2, sm: 0 },
+            mb: 3,
+          }}
+        >
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Alerts Center
           </Typography>
@@ -37,23 +49,31 @@ export default function AlertsCenter({ alerts }: { alerts: DashboardAlert[] }) {
             href="/admin/alerts"
             variant="text"
             size="small"
-            sx={{ fontWeight: 600, textTransform: "none", color: "primary.main", alignSelf: { xs: "flex-end", sm: "auto" } }}
+            sx={{
+              fontWeight: 600,
+              textTransform: "none",
+              color: "primary.main",
+              alignSelf: { xs: "flex-end", sm: "auto" },
+            }}
           >
             View All
           </Button>
         </Box>
         <Stack spacing={3}>
-          {alerts.map((alert) => {
+          {alerts.map(alert => {
             const colorKey = getColorKey(alert.type);
             return (
               <Box key={alert.id} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Avatar
-                  sx={(theme) => ({
-                    bgcolor: (theme.palette as any)[colorKey].light,
-                    color: (theme.palette as any)[colorKey].main,
-                    width: 40,
-                    height: 40,
-                  })}
+                  sx={theme => {
+                    const color = theme.palette[colorKey];
+                    return {
+                      bgcolor: color.light,
+                      color: color.main,
+                      width: 40,
+                      height: 40,
+                    };
+                  }}
                 >
                   <NotificationsIcon fontSize="small" />
                 </Avatar>
