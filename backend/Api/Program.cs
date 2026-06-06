@@ -345,29 +345,34 @@ Example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'",
     var seedOnly = args.Any(arg => string.Equals(arg, "--seed-only", StringComparison.OrdinalIgnoreCase));
     var seedDemoData = string.Equals(Environment.GetEnvironmentVariable("SEED_DEMO_DATA"), "true", StringComparison.OrdinalIgnoreCase);
 
-    // Initialize database and seed roles
-    using (var scope = app.Services.CreateScope())
+    // Initialize database and seed roles if requested OR if auto-seed is enabled
+    if (seedOnly || seedDemoData)
     {
-        var services = scope.ServiceProvider;
-        try
+        using (var scope = app.Services.CreateScope())
         {
-            // Apply any pending migrations (creates the DB if it doesn't exist)
-            var db = services.GetRequiredService<ApplicationDbContext>();
-            await db.Database.MigrateAsync();
+            var services = scope.ServiceProvider;
+            try
+            {
+                // Apply any pending migrations (creates the DB if it doesn't exist)
+                var db = services.GetRequiredService<ApplicationDbContext>();
+                await db.Database.MigrateAsync();
 
-            await DbInitializer.InitializeAsync(services, seedDemoData);
+                // DbInitializer handles the 'IsSeeded' check internally to prevent 
+                // re-seeding demo data on every start.
+                await DbInitializer.InitializeAsync(services, seedDemoData, seedOnly);
+            }
+            catch (Exception ex)
+            {
+                var logger = services.GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "An error occurred while initializing the database");
+            }
         }
-        catch (Exception ex)
+
+        if (seedOnly)
         {
-            var logger = services.GetRequiredService<ILogger<Program>>();
-            logger.LogError(ex, "An error occurred while initializing the database");
+            Log.Information("Seed-only mode completed successfully.");
+            return;
         }
-    }
-
-    if (seedOnly)
-    {
-        Log.Information("Seed-only mode completed successfully.");
-        return;
     }
 
     app.Run();

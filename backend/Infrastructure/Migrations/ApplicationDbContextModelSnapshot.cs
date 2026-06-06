@@ -338,7 +338,10 @@ namespace Infrastructure.Migrations
                     b.HasIndex("VehicleId", "Status", "PickupDate", "ReturnDate")
                         .HasDatabaseName("IX_Bookings_Vehicle_Status_Window");
 
-                    b.ToTable("Bookings");
+                    b.ToTable("Bookings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Booking_DriverRequirement", "([RequiresDriver] = 1 OR [AssignedDriverProfileId] IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("Backend.Domain.Entities.BookingCancellation", b =>

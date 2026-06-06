@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Box, CircularProgress, Container, Typography, Alert, Button, Grid } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -38,9 +38,9 @@ export default function DriverDashboardClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState("");
-
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     if (!session?.accessToken) return;
+    setIsLoading(true);
     try {
       const res = await fetch(toApiUrl("/api/driver/dashboard/summary"), {
         headers: {
@@ -58,11 +58,11 @@ export default function DriverDashboardClient() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [session?.accessToken]);
 
   useEffect(() => {
-    void fetchSummary();
-  }, [session]);
+    fetchSummary().catch(logger.error);
+  }, [fetchSummary]);
 
   if (isLoading) {
     return (
@@ -102,7 +102,7 @@ export default function DriverDashboardClient() {
         </Box>
 
         {summary && (
-          <Box sx={{ bgcolor: "background.paper", p: 2, borderRadius: 3, boxShadow: theme.palette.shadow.card }}>
+          <Box sx={{ bgcolor: "background.paper", p: 2, borderRadius: 2, boxShadow: theme.palette.shadow.card }}>
             <DriverAvailabilityToggle
               initialAvailability={summary.availability}
               onAvailabilityChange={newAvail => {
