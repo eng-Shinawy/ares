@@ -84,4 +84,112 @@ public class DashboardController : ControllerBase
 
         return Ok(items);
     }
+
+    [HttpGet("recent-bookings")]
+    [ProducesResponseType(typeof(IReadOnlyList<RecentBookingDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<IReadOnlyList<RecentBookingDto>>> GetRecentBookings([FromQuery] int limit = 5, CancellationToken cancellationToken = default)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null)
+            return Unauthorized(new { Message = "User not authenticated" });
+
+        var userId = Guid.Parse(userIdClaim.Value);
+        var isSupplier = User.IsInRole("Supplier");
+        var isAdmin = User.IsInRole("Admin");
+
+        Guid? targetSupplierId = isSupplier && !isAdmin ? userId : null;
+
+        var items = await _dashboardService.GetRecentBookingsAsync(targetSupplierId, limit, cancellationToken);
+        return Ok(items);
+    }
+
+    [HttpGet("upcoming-bookings")]
+    [ProducesResponseType(typeof(IReadOnlyList<UpcomingBookingDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<IReadOnlyList<UpcomingBookingDto>>> GetUpcomingBookings([FromQuery] int days = 7, CancellationToken cancellationToken = default)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null)
+            return Unauthorized(new { Message = "User not authenticated" });
+
+        var userId = Guid.Parse(userIdClaim.Value);
+        var isSupplier = User.IsInRole("Supplier");
+        var isAdmin = User.IsInRole("Admin");
+
+        Guid? targetSupplierId = isSupplier && !isAdmin ? userId : null;
+
+        var items = await _dashboardService.GetUpcomingBookingsAsync(targetSupplierId, days, cancellationToken);
+        return Ok(items);
+    }
+
+    [HttpGet("revenue-week")]
+    [ProducesResponseType(typeof(IReadOnlyList<RevenueDataPointDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<IReadOnlyList<RevenueDataPointDto>>> GetRevenueWeek(CancellationToken cancellationToken = default)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null)
+            return Unauthorized(new { Message = "User not authenticated" });
+
+        var userId = Guid.Parse(userIdClaim.Value);
+        var isSupplier = User.IsInRole("Supplier");
+        var isAdmin = User.IsInRole("Admin");
+
+        Guid? targetSupplierId = isSupplier && !isAdmin ? userId : null;
+
+        var items = await _dashboardService.GetRevenueWeekAsync(targetSupplierId, cancellationToken);
+        return Ok(items);
+    }
+
+    [HttpGet("live-tracking")]
+    [ProducesResponseType(typeof(LiveTrackingDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<LiveTrackingDto>> GetLiveTracking(CancellationToken cancellationToken = default)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null)
+            return Unauthorized(new { Message = "User not authenticated" });
+
+        var userId = Guid.Parse(userIdClaim.Value);
+        var isSupplier = User.IsInRole("Supplier");
+        var isAdmin = User.IsInRole("Admin");
+
+        Guid? targetSupplierId = isSupplier && !isAdmin ? userId : null;
+
+        var result = await _dashboardService.GetLiveTrackingAsync(targetSupplierId, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("system-status")]
+    [ProducesResponseType(typeof(SystemStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<SystemStatusDto>> GetSystemStatus(CancellationToken cancellationToken = default)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null)
+            return Unauthorized(new { Message = "User not authenticated" });
+
+        var result = await _dashboardService.GetSystemStatusAsync(cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("top-vehicles")]
+    [ProducesResponseType(typeof(IReadOnlyList<TopVehicleDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<IReadOnlyList<TopVehicleDto>>> GetTopVehicles([FromQuery] int limit = 5, CancellationToken cancellationToken = default)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null)
+            return Unauthorized(new { Message = "User not authenticated" });
+
+        var userId = Guid.Parse(userIdClaim.Value);
+        var isAdmin = User.IsInRole("Admin");
+        var isSupplier = User.IsInRole("Supplier");
+
+        Guid? targetSupplierId = isSupplier && !isAdmin ? userId : null;
+
+        var result = await _dashboardService.GetTopVehiclesAsync(targetSupplierId, limit, cancellationToken);
+        return Ok(result);
+    }
 }

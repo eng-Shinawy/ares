@@ -46,6 +46,22 @@ export interface CheckoutState {
   holdSecondsRemaining?: number | null;
 }
 
+export interface AvailableDriver {
+  driverProfileId: string;
+  firstName?: string;
+  lastName?: string;
+  profilePictureUrl?: string;
+  averageRating: number;
+  totalTrips: number;
+  experienceYears: number;
+  driverFee: number;
+}
+
+export interface AvailableDriversResponse {
+  drivers: AvailableDriver[];
+  nearbyUnavailableCount: number;
+}
+
 export interface CreateDraftPayload {
   vehicleId: string;
   pickupDate: string;
@@ -134,7 +150,7 @@ export function beginPayment(bookingId: string, accessToken: string): Promise<Ch
   return call<CheckoutState>(`/api/checkout/${bookingId}/payment`, accessToken, { method: "POST" });
 }
 
-/** Step 4 — confirm: capture payment and finalise (CONFIRMED). */
+/** Step 4 — confirm: capture payment and finalize (CONFIRMED). */
 export function confirmCheckout(
   bookingId: string,
   payload: ConfirmPayload,
