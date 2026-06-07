@@ -6,7 +6,7 @@ import StatCardGrid, { SummaryItem } from "./StatCardGrid";
 import RevenueChart from "./RevenueChart";
 import QuickActions from "./QuickActions";
 import TopVehicles from "./TopVehicles";
-import RecentBookingsTable, { BookingListItem } from "./RecentBookingsTable";
+import { BookingListItem } from "./RecentBookingsTable";
 import RecentBookings from "./RecentBookings";
 import AlertsCenter from "./AlertsCenter";
 import LiveActivity from "./LiveActivity";
@@ -25,7 +25,6 @@ export interface AdminDashboardViewProps {
 
 export default function AdminDashboardView({
   summary,
-  recentBookings,
   alerts,
   activities,
   quickActions,
