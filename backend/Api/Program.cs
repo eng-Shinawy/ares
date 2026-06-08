@@ -158,6 +158,7 @@ try
     builder.Services.AddScoped<Backend.Application.Services.ITermsService, Backend.Application.Services.TermsService>();
     builder.Services.AddScoped<Backend.Application.Services.IAboutService, Backend.Application.Services.AboutService>();
     builder.Services.AddHostedService<Backend.Infrastructure.Services.BookingStatusUpdateService>();
+    builder.Services.AddHostedService<Backend.Infrastructure.BackgroundServices.VehicleInspectionAutoAssignmentBackgroundService>();
 
     // Paymob
     builder.Services.Configure<Backend.Application.Settings.PaymobSettings>(builder.Configuration.GetSection("Paymob"));
