@@ -285,6 +285,7 @@ export interface AdminVehicleStats {
   readonly totalVehicles: number;
   readonly availableVehicles: number;
   readonly onRentalVehicles: number;
+  readonly maintenanceVehicles?: number;
 }
 
 export function useAdminVehicleStats(accessToken: string | undefined) {
