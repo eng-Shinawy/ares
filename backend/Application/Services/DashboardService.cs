@@ -409,6 +409,8 @@ public class DashboardService : IDashboardService
             {
                 Date = g.Key,
                 Revenue = g.Sum(x => x.Booking.TotalPrice ?? 0),
+                PlatformRevenue = g.Sum(x => x.Booking.CommissionAmount ?? 0),
+                SupplierRevenue = g.Sum(x => x.Booking.SupplierAmount ?? x.Booking.TotalPrice ?? 0),
                 Bookings = g.Sum(x => x.Booking.Status == BookingStatus.Active || x.Booking.Status == BookingStatus.Completed || x.Booking.Status == BookingStatus.Confirmed ? (x.Booking.TotalPrice ?? 0) : 0),
                 Refunds = g.Sum(x => x.Booking.Status == BookingStatus.Cancelled ? (x.Booking.TotalPrice ?? 0) : 0)
             })
@@ -416,18 +418,24 @@ public class DashboardService : IDashboardService
             .ToListAsync(cancellationToken);
 
         var totalRevenue = dataPoints.Sum(x => x.Revenue);
+        var totalPlatformRevenue = dataPoints.Sum(x => x.PlatformRevenue);
+        var totalSupplierRevenue = dataPoints.Sum(x => x.SupplierRevenue);
         var totalBookings = dataPoints.Sum(x => x.Bookings);
         var totalRefunds = dataPoints.Sum(x => x.Refunds);
 
         var chartData = dataPoints.Select(x => new ChartDataPointDto(
             Date: x.Date.ToString("MMM d"),
             Revenue: x.Revenue,
+            PlatformRevenue: x.PlatformRevenue,
+            SupplierRevenue: x.SupplierRevenue,
             Bookings: x.Bookings,
             Refunds: x.Refunds
         )).ToList().AsReadOnly();
 
         return new RevenueOverviewDto(
             TotalRevenue: totalRevenue,
+            PlatformRevenue: totalPlatformRevenue,
+            SupplierRevenue: totalSupplierRevenue,
             TotalBookings: totalBookings,
             TotalRefunds: totalRefunds,
             ChartData: chartData
