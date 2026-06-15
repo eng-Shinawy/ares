@@ -535,7 +535,7 @@ public class VehicleSearchPropertyTests : IDisposable
                 PricePerDay = 50 + (i * 15), // Varied prices: 50, 65, 80, 95, 110, 125, 140, etc.
                 LocationCity = "Test City",
                 Description = $"Test vehicle {i}",
-                Status = "Available",
+                Status = categoryName,
                 CategoryId = category.Id,
                 Category = category,
                 AvailabilityStatus = "Available",
