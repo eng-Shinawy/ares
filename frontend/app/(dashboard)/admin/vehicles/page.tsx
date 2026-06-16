@@ -60,6 +60,7 @@ import {
   type VehicleSortBy,
 } from "@/api-clients/cars/cars";
 import { getSuppliers, type Supplier } from "@/api-clients/suppliers/suppliers";
+import { getCategories, bulkAssignVehicles, type Category } from "@/api-clients/categories/categories";
 import VisibilityOutlinedIcon from "@mui/icons-material/LaunchOutlined";
 import { toImageUrl } from "@/utils/image-url";
 import { logger } from "@/utils/logger";

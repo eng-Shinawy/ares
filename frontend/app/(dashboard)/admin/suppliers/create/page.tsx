@@ -90,7 +90,11 @@ const cardSx = {
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
-function SectionHeader({ icon, title, subtitle }: Readonly<{ icon: React.ReactNode; title: string; subtitle: string }>) {
+function SectionHeader({
+  icon,
+  title,
+  subtitle,
+}: Readonly<{ icon: React.ReactNode; title: string; subtitle: string }>) {
   return (
     <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start", mb: 2.5 }}>
       <Box
