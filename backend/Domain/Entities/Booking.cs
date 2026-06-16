@@ -41,6 +41,12 @@ namespace Backend.Domain.Entities
         public Driver? Driver { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
+        public decimal? OriginalPrice { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? DiscountAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
         public decimal? TotalPrice { get; set; }
 
         public BookingStatus Status { get; set; } = BookingStatus.Draft;
@@ -88,6 +94,16 @@ namespace Backend.Domain.Entities
         // booking then transitions to Expired). Both are stored in UTC.
         public DateTime? HoldStartedAt { get; set; }
         public DateTime? HoldExpiresAt { get; set; }
+
+        // ── Revenue & Commission ─────────────────────────────────────────────
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal? CommissionPercentage { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? CommissionAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? SupplierAmount { get; set; }
 
         [Timestamp]
         public byte[]? RowVersion { get; set; }

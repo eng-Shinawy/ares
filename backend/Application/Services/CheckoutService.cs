@@ -32,6 +32,8 @@ namespace Backend.Application.Services
         private readonly IDriverReviewRepository _driverReviewRepository;
         private readonly IDriverPricingService _driverPricingService;
         private readonly IVerificationService _verificationService;
+        private readonly ICommissionService _commissionService;
+        private readonly IPricingService _pricingService;
         private readonly INotificationService? _notificationService;
         private readonly IApplicationDbContext _context;
         private readonly IConfiguration _configuration;
@@ -47,6 +49,8 @@ namespace Backend.Application.Services
             IDriverReviewRepository driverReviewRepository,
             IDriverPricingService driverPricingService,
             IVerificationService verificationService,
+            ICommissionService commissionService,
+            IPricingService pricingService,
             IApplicationDbContext context,
             IConfiguration configuration,
             INotificationService? notificationService = null)
@@ -58,6 +62,8 @@ namespace Backend.Application.Services
             _driverReviewRepository = driverReviewRepository;
             _driverPricingService = driverPricingService;
             _verificationService = verificationService;
+            _commissionService = commissionService;
+            _pricingService = pricingService;
             _context = context;
             _configuration = configuration;
             _notificationService = notificationService;
@@ -253,6 +259,9 @@ namespace Backend.Application.Services
                 throw new BadRequestException("Payment processing failed. Please try again.");
             }
 
+            var commissionPercentage = await _commissionService.GetEffectiveCommissionAsync(vehicle.Id, cancellationToken);
+            var (commissionAmount, supplierAmount) = _commissionService.CalculateCommission(grandTotal, commissionPercentage);
+
             // ── Create booking (Confirmed — payment captured) ────────────────
             var booking = new Booking
             {
@@ -273,7 +282,10 @@ namespace Backend.Application.Services
                 AssignedDriverProfileId = effectiveNeedDriver ? driverProfile!.Id : (Guid?)null,
                 DriverLockedUntil = effectiveNeedDriver ? request.ReturnDate : (DateTime?)null,
                 // Legacy customer-license Driver FK is never set here.
-                Status = BookingStatus.Confirmed
+                Status = BookingStatus.Confirmed,
+                CommissionPercentage = commissionPercentage,
+                CommissionAmount = commissionAmount,
+                SupplierAmount = supplierAmount
             };
             await _bookingRepository.AddAsync(booking, cancellationToken);
 
@@ -358,8 +370,9 @@ namespace Backend.Application.Services
                     return await BuildStateAsync(existing, cancellationToken);
                 }
 
+                var pricingResult = await _pricingService.CalculateBookingPricingAsync(request.VehicleId, request.PickupDate, request.ReturnDate, cancellationToken);
                 var totalDays = CalculateDays(request.PickupDate, request.ReturnDate);
-                var vehicleFee = (vehicle.PricePerDay ?? 0) * totalDays;
+                var vehicleFee = pricingResult.FinalPrice;
 
                 var pickupLabel = !string.IsNullOrWhiteSpace(request.PickupLocation)
                     ? await ResolveDisplayLocationAsync(request.PickupLocation!.Trim(), cancellationToken)
@@ -379,6 +392,8 @@ namespace Backend.Application.Services
                     PickupLocation = pickupLabel,
                     DropoffLocation = dropoffLabel,
                     TotalDays = totalDays,
+                    OriginalPrice = pricingResult.OriginalPrice,
+                    DiscountAmount = pricingResult.DiscountAmount,
                     VehicleFee = vehicleFee,
                     GrandTotal = vehicleFee,
                     TotalPrice = vehicleFee,
@@ -457,9 +472,9 @@ namespace Backend.Application.Services
                 booking.GrandTotal = vehicleFee + (booking.DriverFee ?? 0m);
                 booking.TotalPrice = booking.GrandTotal;
                 booking.Status = BookingStatus.Draft;
-                
+
                 // Keep assignment status in sync for filtering.
-                booking.DriverAssignmentStatus = effectiveNeedDriver 
+                booking.DriverAssignmentStatus = effectiveNeedDriver
                     ? (booking.AssignedDriverProfileId.HasValue ? DriverAssignmentStatus.Assigned : DriverAssignmentStatus.Waiting)
                     : DriverAssignmentStatus.NotRequired;
 
@@ -568,6 +583,12 @@ namespace Backend.Application.Services
                 }
 
                 var grandTotal = booking.GrandTotal ?? booking.TotalPrice ?? 0m;
+
+                var commissionPercentage = await _commissionService.GetEffectiveCommissionAsync(booking.VehicleId, cancellationToken);
+                var (commissionAmount, supplierAmount) = _commissionService.CalculateCommission(grandTotal, commissionPercentage);
+                booking.CommissionPercentage = commissionPercentage;
+                booking.CommissionAmount = commissionAmount;
+                booking.SupplierAmount = supplierAmount;
 
                 // Stage the payment row…
                 var payment = new BookingPayment
@@ -756,6 +777,8 @@ namespace Backend.Application.Services
                 DropoffLocation: dropoffName,
                 TotalDays: booking.TotalDays ?? 0,
                 VehicleFee: booking.VehicleFee ?? 0m,
+                OriginalVehicleFee: booking.OriginalPrice,
+                DiscountAmount: booking.DiscountAmount,
                 RequiresDriver: booking.RequiresDriver,
                 DriverProfileId: booking.AssignedDriverProfileId,
                 DriverName: driverName,

@@ -151,27 +151,6 @@ public class InspectionService : IInspectionService
             ?? throw new InvalidOperationException("Failed to load just-created inspection.");
     }
 
-    // ─── Inspector dashboard ─────────────────────────────────────────────
-    public async Task<IReadOnlyList<InspectionDto>> GetAssignedAsync(
-        Guid inspectorUserId,
-        bool? includeSubmitted = null,
-        CancellationToken cancellationToken = default)
-    {
-        var all = await _inspectionRepository.GetAllAsync(cancellationToken);
-        var query = all.Where(i => i.InspectorId == inspectorUserId);
-
-        // By default the dashboard shows open work only.
-        if (includeSubmitted != true)
-        {
-            query = query.Where(i => !i.IsSubmitted);
-        }
-
-        var ordered = query
-            .OrderByDescending(i => i.CreatedAt)
-            .ToList();
-
-        return await ToDtoListAsync(ordered, cancellationToken);
-    }
 
     public async Task<InspectionDetailsDto?> GetByIdAsync(
         Guid inspectionId,
@@ -369,7 +348,9 @@ public class InspectionService : IInspectionService
         if (inspection == null) return null;
 
         var booking = await _bookingRepository.GetBookingWithDetailsAsync(inspection.BookingId, cancellationToken);
-        var inspectorUser = await _userManager.FindByIdAsync(inspection.InspectorId.ToString());
+        var inspectorUser = inspection.InspectorId.HasValue
+            ? await _userManager.FindByIdAsync(inspection.InspectorId.Value.ToString())
+            : null;
 
         var images = (await _inspectionImageRepository.GetAllAsync(cancellationToken))
             .Where(i => i.InspectionId == inspection.InspectionId)
@@ -383,7 +364,7 @@ public class InspectionService : IInspectionService
             BookingNumber: booking?.BookingNumber,
             VehicleId: inspection.VehicleId,
             VehicleDisplayName: BuildVehicleLabel(booking?.Vehicle),
-            InspectorId: inspection.InspectorId,
+            InspectorId: inspection.InspectorId ?? Guid.Empty,
             InspectorFullName: BuildPersonName(inspectorUser),
             Status: inspection.Status.ToString(),
             IsSubmitted: inspection.IsSubmitted,
@@ -412,7 +393,9 @@ public class InspectionService : IInspectionService
         foreach (var inspection in inspections)
         {
             var booking = await _bookingRepository.GetBookingWithDetailsAsync(inspection.BookingId, cancellationToken);
-            var inspectorUser = await _userManager.FindByIdAsync(inspection.InspectorId.ToString());
+            var inspectorUser = inspection.InspectorId.HasValue
+                ? await _userManager.FindByIdAsync(inspection.InspectorId.Value.ToString())
+                : null;
 
             dtos.Add(new InspectionDto(
                 InspectionId: inspection.InspectionId,
@@ -420,7 +403,7 @@ public class InspectionService : IInspectionService
                 BookingNumber: booking?.BookingNumber,
                 VehicleId: inspection.VehicleId,
                 VehicleDisplayName: BuildVehicleLabel(booking?.Vehicle),
-                InspectorId: inspection.InspectorId,
+                InspectorId: inspection.InspectorId ?? Guid.Empty,
                 InspectorFullName: BuildPersonName(inspectorUser),
                 Status: inspection.Status.ToString(),
                 IsSubmitted: inspection.IsSubmitted,

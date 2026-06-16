@@ -18,6 +18,8 @@ export interface PublicVehicleCard {
   make: string;
   model: string;
   dailyRate: number;
+  originalDailyRate?: number;
+  discountPercentage?: number;
   currency: string;
   imageUrl: string;
   rating: number;
@@ -73,6 +75,12 @@ export interface PublicDestinationCard {
   vehicleCount: number;
 }
 
+export interface PublicCategory {
+  id: string;
+  name: string;
+  vehicleCount?: number;
+}
+
 interface ApiPagedResponse<T> {
   data?: T[];
   resultData?: T[];
@@ -109,6 +117,10 @@ interface ApiVehicleListDto {
   Model?: string | null;
   dailyRate?: ApiValue;
   DailyRate?: ApiValue;
+  originalDailyRate?: ApiValue;
+  OriginalDailyRate?: ApiValue;
+  discountPercentage?: ApiValue;
+  DiscountPercentage?: ApiValue;
   currency?: string | null;
   Currency?: string | null;
   imageUrl?: string | null;
@@ -195,6 +207,15 @@ interface ApiDestinationDto {
   ImageUrl?: string | null;
   startingPrice?: ApiValue;
   StartingPrice?: ApiValue;
+  vehicleCount?: ApiValue;
+  VehicleCount?: ApiValue;
+}
+
+interface ApiCategoryDto {
+  id?: string;
+  Id?: string;
+  name?: string | null;
+  Name?: string | null;
   vehicleCount?: ApiValue;
   VehicleCount?: ApiValue;
 }
@@ -299,6 +320,8 @@ function normalizeVehicle(vehicle: ApiVehicleListDto): PublicVehicleCard {
     make: asString(vehicle.make ?? vehicle.Make),
     model: asString(vehicle.model ?? vehicle.Model),
     dailyRate: asNumber(vehicle.dailyRate ?? vehicle.DailyRate),
+    originalDailyRate: asOptionalNumber(vehicle.originalDailyRate ?? vehicle.OriginalDailyRate),
+    discountPercentage: asOptionalNumber(vehicle.discountPercentage ?? vehicle.DiscountPercentage),
     currency: asString(vehicle.currency ?? vehicle.Currency, "USD"),
     imageUrl,
     rating: asNumber(vehicle.rating ?? vehicle.Rating),
@@ -366,6 +389,14 @@ function normalizeDestination(destination: ApiDestinationDto): PublicDestination
     imageUrl: destination.imageUrl ?? destination.ImageUrl ?? undefined,
     startingPrice: asNumber(destination.startingPrice ?? destination.StartingPrice),
     vehicleCount: asNumber(destination.vehicleCount ?? destination.VehicleCount),
+  };
+}
+
+function normalizeCategory(category: ApiCategoryDto): PublicCategory {
+  return {
+    id: category.id ?? category.Id ?? "",
+    name: asString(category.name ?? category.Name, "Category"),
+    vehicleCount: asOptionalNumber(category.vehicleCount ?? category.VehicleCount),
   };
 }
 
@@ -491,6 +522,21 @@ export async function fetchPublicDestinations(limit = 4): Promise<PublicDestinat
   return normalizeCollection(payload)
     .map(normalizeDestination)
     .filter(destination => Boolean(destination.id));
+}
+
+export async function fetchPublicCategories(): Promise<PublicCategory[]> {
+  const payload = await fetchJsonOrNull<ApiCategoryDto[] | ApiPagedResponse<ApiCategoryDto>>(
+    toApiUrl(`/api/admin/categories`),
+    { cache: "no-store" }
+  );
+
+  if (!payload) {
+    return [];
+  }
+
+  return normalizeCollection(payload)
+    .map(normalizeCategory)
+    .filter(category => Boolean(category.id));
 }
 
 export function formatCurrency(value: number, currency = "USD"): string {

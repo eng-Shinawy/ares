@@ -21,12 +21,12 @@ public static class OperationalDataSeeder
 
         // 0. Cleanup existing operational data (Matches behavior of cancel_data.sql)
         logger.LogInformation("Cleaning up existing operational data...");
-        
+
         // Identify targeted demo users
         var demoUserEmails = new List<string>();
         for (int i = 1; i <= 2; i++) demoUserEmails.Add($"newcustomer{i}@ares.local");
         for (int i = 1; i <= 4; i++) demoUserEmails.Add($"newdriver{i}@ares.local");
-        for (int i = 1; i <= 2; i++) demoUserEmails.Add($"newinspector{i}@ares.local");
+        for (int i = 1; i <= 4; i++) demoUserEmails.Add($"newinspector{i}@ares.local");
 
         var demoUsers = await context.Users
             .Where(u => u.Email != null && demoUserEmails.Contains(u.Email))
@@ -37,10 +37,10 @@ public static class OperationalDataSeeder
         {
             // Cancel bookings instead of deleting them to maintain referential integrity
             var bookingsToCancel = await context.Bookings
-                .Where(b => demoUserIds.Contains(b.UserId) || 
+                .Where(b => demoUserIds.Contains(b.UserId) ||
                            (b.AssignedInspectorId != null && demoUserIds.Contains(b.AssignedInspectorId.Value)))
                 .ToListAsync();
-            
+
             foreach (var b in bookingsToCancel)
             {
                 b.Status = BookingStatus.Cancelled;
@@ -61,10 +61,10 @@ public static class OperationalDataSeeder
             {
                 var workAreas = await context.DriverWorkAreas.Where(wa => driverProfileIds.Contains(wa.DriverProfileId)).ToListAsync();
                 context.DriverWorkAreas.RemoveRange(workAreas);
-                
+
                 var reviews = await context.DriverReviews.Where(r => driverProfileIds.Contains(r.DriverProfileId)).ToListAsync();
                 context.DriverReviews.RemoveRange(reviews);
-                
+
                 context.DriverProfiles.RemoveRange(driverProfilesToCleanup);
             }
 
@@ -90,7 +90,7 @@ public static class OperationalDataSeeder
             {
                 await userManager.DeleteAsync(user);
             }
-            
+
             logger.LogInformation("Operational cleanup completed.");
         }
 
@@ -148,12 +148,25 @@ public static class OperationalDataSeeder
             driverProfiles.Add(profile);
         }
 
-        // 3. Create 2 Inspectors
+        // 3. Create 4 Inspectors
         var inspectors = new List<ApplicationUser>();
-        for (int i = 1; i <= 2; i++)
+        var inspectorLocations = new[]
         {
-            var email = $"newinspector{i}@ares.local";
-            var inspector = await EnsureUserAsync(userManager, email, $"InspFirst{i}", $"InspLast{i}", $"+2013000000{i}", "Inspector", true);
+            "12 Tahrir Square",
+            "Corniche Road",
+            "Naama Bay",
+            "Marina Boulevard"
+        };
+        var firstNames = new[] { "Cairo", "Alex", "Sharm", "Hurghada" };
+
+        for (int i = 0; i < 4; i++)
+        {
+            var index = i + 1;
+            var email = $"newinspector{index}@ares.local";
+            var locationName = inspectorLocations[i];
+            var firstName = firstNames[i];
+
+            var inspector = await EnsureUserAsync(userManager, email, $"{firstName}Insp", "Official", $"+2013000000{index}", "Inspector", true);
             inspectors.Add(inspector);
 
             var inspectorProfile = await context.Inspectors.FirstOrDefaultAsync(ip => ip.UserId == inspector.Id);
@@ -163,17 +176,26 @@ public static class OperationalDataSeeder
                 {
                     Id = Guid.NewGuid(),
                     UserId = inspector.Id,
-                    EmployeeCode = $"EMP-INSP-00{i}",
-                    IsActive = true
+                    EmployeeCode = $"EMP-INSP-00{index}",
+                    Region = locationName,
+                    IsActive = true,
+                    IsAvailable = true
                 };
                 await context.Inspectors.AddAsync(inspectorProfile);
+            }
+            else
+            {
+                inspectorProfile.Region = locationName;
+                inspectorProfile.EmployeeCode = $"EMP-INSP-00{index}";
+                inspectorProfile.IsActive = true;
+                inspectorProfile.IsAvailable = true;
             }
         }
 
         await context.SaveChangesAsync();
 
         // 4. Use Existing Vehicles
-        var vehicles = await context.Vehicles.Where(v => v.IsActive).Take(10).ToListAsync();
+        var vehicles = await context.Vehicles.Include(v => v.Category).Where(v => v.IsActive).Take(10).ToListAsync();
         if (!vehicles.Any())
         {
             logger.LogWarning("No vehicles found to assign bookings.");
@@ -188,7 +210,7 @@ public static class OperationalDataSeeder
             .ToList();
 
         var paymentMethods = new[] { "CreditCard", "DebitCard", "VodafoneCash", "InstaPay" };
-        var locations = new[] { "Cairo Airport", "Tahrir Square", "Alexandria Corniche", "Giza Pyramids", "Sharm El Sheikh" };
+        var locations = new[] { "12 Tahrir Square", "Corniche Road", "Naama Bay", "Marina Boulevard" };
 
         var generatedBookings = new List<Booking>();
         var now = DateTime.UtcNow;
@@ -199,7 +221,10 @@ public static class OperationalDataSeeder
             var customer = customers[random.Next(customers.Count)];
             var vehicle = vehicles[random.Next(vehicles.Count)];
             var driverProfile = i % 2 == 0 ? driverProfiles[random.Next(driverProfiles.Count)] : null;
-            var inspector = inspectors[random.Next(inspectors.Count)];
+
+            var locationIndex = random.Next(locations.Length);
+            var bookingLocation = locations[locationIndex];
+            var inspector = inspectors[locationIndex];
 
             // Ensure high revenue by multiplying price and days
             var totalDays = random.Next(3, 15);
@@ -215,6 +240,23 @@ public static class OperationalDataSeeder
             var totalPrice = pricePerDay * totalDays;
             if (driverProfile != null) totalPrice += 500m * totalDays;
 
+            decimal commissionPercentage = 10.0m;
+            if (vehicle.Category != null && vehicle.Category.IsActive)
+            {
+                commissionPercentage = vehicle.Category.CommissionPercentage;
+            }
+            else
+            {
+                var globalSetting = await context.SystemSettings
+                    .FirstOrDefaultAsync(s => s.Key == "GlobalCommissionPercentage");
+                if (globalSetting != null && decimal.TryParse(globalSetting.Value, out var globalCommission))
+                {
+                    commissionPercentage = globalCommission;
+                }
+            }
+            var commissionAmount = Math.Round(totalPrice * (commissionPercentage / 100m), 2);
+            var supplierAmount = totalPrice - commissionAmount;
+
             var booking = new Booking
             {
                 Id = Guid.NewGuid(),
@@ -223,7 +265,7 @@ public static class OperationalDataSeeder
                 VehicleId = vehicle.Id,
                 PickupDate = pickupDate,
                 ReturnDate = returnDate,
-                PickupLocation = locations[random.Next(locations.Length)],
+                PickupLocation = bookingLocation,
                 DropoffLocation = locations[random.Next(locations.Length)],
                 TotalDays = totalDays,
                 RequiresDriver = driverProfile != null,
@@ -234,7 +276,10 @@ public static class OperationalDataSeeder
                 CancellationReason = status == BookingStatus.Cancelled ? "Customer request" : null,
                 AssignedInspectorId = inspector.Id,
                 InspectionStatus = status == BookingStatus.Completed || status == BookingStatus.Active ? InspectionStatus.Approved : InspectionStatus.Pending,
-                DriverAssignmentStatus = driverProfile != null ? DriverAssignmentStatus.Assigned : DriverAssignmentStatus.NotRequired
+                DriverAssignmentStatus = driverProfile != null ? DriverAssignmentStatus.Assigned : DriverAssignmentStatus.NotRequired,
+                CommissionPercentage = commissionPercentage,
+                CommissionAmount = commissionAmount,
+                SupplierAmount = supplierAmount
             };
 
             await context.Bookings.AddAsync(booking);
@@ -337,7 +382,7 @@ public static class OperationalDataSeeder
                 IsRead = true,
                 CreatedAt = pickupDate.AddDays(-2)
             });
-            
+
             if (status == BookingStatus.Completed)
             {
                 await context.Notifications.AddAsync(new Notification

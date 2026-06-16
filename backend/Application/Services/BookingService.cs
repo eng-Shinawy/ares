@@ -34,9 +34,11 @@ public class BookingService : IBookingService
     // changes. Production DI always provides a real implementation, so the
     // identity-verification gate below is enforced for real customers.
     private readonly IVerificationService? _verificationService;
-    private readonly IDriverRequestService? _driverRequestService;
     private readonly IDriverPricingService? _driverPricingService;
     private readonly IDriverProfileRepository? _driverProfileRepository;
+    private readonly ICommissionService? _commissionService;
+    private readonly IPricingService _pricingService;
+    private readonly ISupplierRestrictionService? _supplierRestrictionService;
 
     public BookingService(
         IBookingRepository bookingRepository,
@@ -45,9 +47,11 @@ public class BookingService : IBookingService
         UserManager<ApplicationUser> userManager,
         INotificationService? notificationService = null,
         IVerificationService? verificationService = null,
-        IDriverRequestService? driverRequestService = null,
         IDriverPricingService? driverPricingService = null,
-        IDriverProfileRepository? driverProfileRepository = null)
+        IDriverProfileRepository? driverProfileRepository = null,
+        ICommissionService? commissionService = null,
+        IPricingService? pricingService = null,
+        ISupplierRestrictionService? supplierRestrictionService = null)
     {
         _bookingRepository = bookingRepository;
         _vehicleRepository = vehicleRepository;
@@ -55,9 +59,11 @@ public class BookingService : IBookingService
         _userManager = userManager;
         _notificationService = notificationService;
         _verificationService = verificationService;
-        _driverRequestService = driverRequestService;
         _driverPricingService = driverPricingService;
         _driverProfileRepository = driverProfileRepository;
+        _commissionService = commissionService;
+        _pricingService = pricingService ?? throw new ArgumentNullException(nameof(pricingService));
+        _supplierRestrictionService = supplierRestrictionService;
     }
 
     public async Task<BookingResponse> CreateBookingAsync(
@@ -155,7 +161,15 @@ public class BookingService : IBookingService
         // Requirement 4.2: Calculate total price (days * pricePerDay) — always
         // server-side, never trust a client-provided total.
         var totalDays = (request.ReturnDate - request.PickupDate).Days;
-        var totalPrice = (vehicle.PricePerDay ?? 0) * totalDays;
+        var pricingResult = await _pricingService.CalculateBookingPricingAsync(
+            request.VehicleId,
+            request.PickupDate,
+            request.ReturnDate,
+            cancellationToken);
+
+        var originalPrice = pricingResult.OriginalPrice;
+        var discountAmount = pricingResult.DiscountAmount;
+        var totalPrice = pricingResult.FinalPrice;
 
         // Requirement 4.5: Generate unique booking number
         var bookingNumber = GenerateUniqueBookingNumber();
@@ -207,6 +221,8 @@ public class BookingService : IBookingService
             PickupLocation = pickupLabel,
             DropoffLocation = dropoffLabel,
             TotalDays = totalDays,
+            OriginalPrice = originalPrice,
+            DiscountAmount = discountAmount,
             TotalPrice = totalPrice,
             // The driver-module assignment is NEVER set here. A driver is only
             // attached through the request → accept → select workflow, which
@@ -224,6 +240,22 @@ public class BookingService : IBookingService
             await _driverPricingService.CalculateBookingDriverFeesAsync(booking, totalDays, cancellationToken);
             booking.Vehicle = null; // Detach before save
         }
+
+        decimal commissionPercentage = 10.0m;
+        decimal commissionAmount = Math.Round((booking.TotalPrice ?? 0m) * (commissionPercentage / 100m), 2);
+        decimal supplierAmount = (booking.TotalPrice ?? 0m) - commissionAmount;
+
+        if (_commissionService != null)
+        {
+            commissionPercentage = await _commissionService.GetEffectiveCommissionAsync(booking.VehicleId, cancellationToken);
+            var result = _commissionService.CalculateCommission(booking.TotalPrice ?? 0m, commissionPercentage);
+            commissionAmount = result.CommissionAmount;
+            supplierAmount = result.SupplierAmount;
+        }
+
+        booking.CommissionPercentage = commissionPercentage;
+        booking.CommissionAmount = commissionAmount;
+        booking.SupplierAmount = supplierAmount;
 
         // ── Race-safe persistence (P0: double-booking fix) ───────────────
         // Previously this method inserted the booking with a bare
@@ -262,10 +294,7 @@ public class BookingService : IBookingService
             holdExpiresAt: null,
             cancellationToken);
 
-        if (effectiveNeedDriver == true && _driverRequestService != null)
-        {
-            await _driverRequestService.CheckAndEmitRequestAsync(booking.Id, cancellationToken);
-        }
+        // Driver auto-assignment is now handled by VehicleInspectionAutoAssignmentBackgroundService
 
         // Requirement 4.8: Create notification for the booking owner (customer).
         if (request.CustomerUserId.HasValue && request.CustomerUserId.Value != userId)
@@ -449,7 +478,7 @@ public class BookingService : IBookingService
                 driverProfile.LockedUntil = null;
                 driverProfile.Availability = DriverAvailability.Available;
                 await _driverProfileRepository.UpdateAsync(driverProfile, cancellationToken);
-                
+
                 if (_notificationService != null)
                 {
                     await _notificationService.CreateNotificationAsync(
@@ -483,6 +512,10 @@ public class BookingService : IBookingService
             fee = refundResult.CancellationFee;
         }
 
+        var commissionPercentage = booking.CommissionPercentage ?? 0m;
+        var refundCommissionAmount = fee * (commissionPercentage / 100m);
+        var refundSupplierAmount = fee - refundCommissionAmount;
+
         var cancellation = new BookingCancellation
         {
             Id = Guid.NewGuid(),
@@ -492,6 +525,8 @@ public class BookingService : IBookingService
             RefundPercentage = refundPct,
             OriginalAmount = totalAmount,
             CancellationFee = fee,
+            RefundCommissionAmount = Math.Round(refundCommissionAmount, 2),
+            RefundSupplierAmount = Math.Round(refundSupplierAmount, 2),
             Currency = "EGP",
             RefundStatus = refundPct > 0 ? Domain.Entities.Enums.RefundStatus.Processing : Domain.Entities.Enums.RefundStatus.Completed,
             Reason = "Customer requested cancellation",
@@ -679,6 +714,14 @@ public class BookingService : IBookingService
         // Fire-and-forget notification for the customer (best-effort).
         await NotifyBookingStatusChangeAsync(booking, parsedStatus, cancellationToken);
 
+        // Check for auto-conversion if the supplier is restricted
+        if ((parsedStatus == BookingStatus.Completed || parsedStatus == BookingStatus.Cancelled)
+            && booking.Vehicle?.UserId != null
+            && _supplierRestrictionService != null)
+        {
+            await _supplierRestrictionService.CheckAndConvertToBlockedAsync(booking.Vehicle.UserId, cancellationToken);
+        }
+
         return true;
     }
 
@@ -767,7 +810,7 @@ public class BookingService : IBookingService
             {
                 throw new ConflictException("The assigned driver is not available for the new dates.");
             }
-            
+
             var driverProfile = await _driverProfileRepository.GetByIdAsync(booking.AssignedDriverProfileId.Value, cancellationToken);
             if (driverProfile != null)
             {
@@ -1383,6 +1426,8 @@ public class BookingService : IBookingService
             Timeline: timeline,
             AssignedDriverProfile: assignedDriverDto,
             VehicleFee: booking.VehicleFee,
+            OriginalPrice: booking.OriginalPrice,
+            DiscountAmount: booking.DiscountAmount,
             DriverFee: booking.DriverFee,
             GrandTotal: booking.GrandTotal,
             RequiresDriver: booking.RequiresDriver);
@@ -1409,7 +1454,7 @@ public class BookingService : IBookingService
         return new BookingInspectionFullDto(
             InspectionId: inspection.InspectionId,
             InspectionType: inspection.InspectionType,
-            InspectorId: inspection.InspectorId,
+            InspectorId: inspection.InspectorId ?? Guid.Empty,
             InspectorName: inspectorName,
             Status: inspection.Status.ToString(),
             InspectionDate: inspection.InspectionDate,

@@ -7,6 +7,9 @@ namespace Backend.Application.Interfaces;
 /// </summary>
 public interface IApplicationDbContext
 {
+    IQueryable<Category> Categories { get; }
+    IQueryable<CategoryOffer> CategoryOffers { get; }
+    IQueryable<Promotion> Promotions { get; }
     IQueryable<Vehicle> Vehicles { get; }
     IQueryable<VehicleImage> VehicleImages { get; }
     IQueryable<Booking> Bookings { get; }
@@ -27,11 +30,10 @@ public interface IApplicationDbContext
     IQueryable<DriverProfile> DriverProfiles { get; }
     IQueryable<DriverWorkArea> DriverWorkAreas { get; }
     IQueryable<ServiceArea> ServiceAreas { get; }
-    IQueryable<DriverRequest> DriverRequests { get; }
-    IQueryable<DriverRequestResponse> DriverRequestResponses { get; }
     IQueryable<DriverReview> DriverReviews { get; }
     IQueryable<VehicleInspection> VehicleInspections { get; }
     IQueryable<InspectionImage> InspectionImages { get; }
+    IQueryable<Inspector> Inspectors { get; }
     void AddFavorite(Favorite favorite);
     void AddBookingCancellation(BookingCancellation cancellation);
     void AddUserAddress(UserAddress userAddress);
@@ -43,5 +45,12 @@ public interface IApplicationDbContext
     void RemoveVehicleFeatures(IEnumerable<VehicleFeature> features);
     void AddVehicleFeatures(IEnumerable<VehicleFeature> features);
     void AddSystemSetting(SystemSetting setting);
+    void AddVehicleInspection(VehicleInspection inspection);
+    void AddCategory(Category category);
+    void RemoveCategory(Category category);
+    void AddPromotion(Promotion promotion);
+    void RemovePromotion(Promotion promotion);
+    void AddCategoryOffer(CategoryOffer offer);
+    void RemoveCategoryOffer(CategoryOffer offer);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
