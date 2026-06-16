@@ -90,7 +90,7 @@ const cardSx = {
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
-function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
+function SectionHeader({ icon, title, subtitle }: Readonly<{ icon: React.ReactNode; title: string; subtitle: string }>) {
   return (
     <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start", mb: 2.5 }}>
       <Box
@@ -126,14 +126,14 @@ function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode; title
 
 // ─── ACTION PANEL ─────────────────────────────────────────────────────────────
 interface ActionPanelProps {
-  inSidebar?: boolean;
-  allMandatoryFilled: boolean;
-  filledCount: number;
-  totalCount: number;
-  mandatoryFields: ReadonlyArray<{ key: string; label: string; filled: boolean }>;
-  saving: boolean;
-  onSubmit: () => void;
-  onBack: () => void;
+  readonly inSidebar?: boolean;
+  readonly allMandatoryFilled: boolean;
+  readonly filledCount: number;
+  readonly totalCount: number;
+  readonly mandatoryFields: ReadonlyArray<{ readonly key: string; readonly label: string; readonly filled: boolean }>;
+  readonly saving: boolean;
+  readonly onSubmit: () => void;
+  readonly onBack: () => void;
 }
 
 function ActionPanel({
@@ -145,7 +145,7 @@ function ActionPanel({
   saving,
   onSubmit,
   onBack,
-}: ActionPanelProps) {
+}: Readonly<ActionPanelProps>) {
   return (
     <Paper
       elevation={0}
@@ -272,6 +272,138 @@ function ActionPanel({
   );
 }
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ── STICKY FOOTER FOR MOBILE/TABLET ──────────────────────────────────────────
+interface StickyFooterProps {
+  readonly isMobile: boolean;
+  readonly allMandatoryFilled: boolean;
+  readonly filledCount: number;
+  readonly totalCount: number;
+  readonly saving: boolean;
+  readonly onSubmit: () => void;
+  readonly onBack: () => void;
+}
+
+function StickyFooter({
+  isMobile,
+  allMandatoryFilled,
+  filledCount,
+  totalCount,
+  saving,
+  onSubmit,
+  onBack,
+}: StickyFooterProps) {
+  return isMobile ? (
+    <Stack spacing={1}>
+      <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+        {allMandatoryFilled ? (
+          <>
+            <CheckCircleIcon sx={{ color: "success.main", fontSize: 15 }} />
+            <Typography variant="caption" color="success.main" sx={{ fontWeight: 500 }}>
+              All mandatory fields completed.
+            </Typography>
+          </>
+        ) : (
+          <Typography variant="caption" color="text.secondary">
+            {filledCount}/{totalCount} required fields filled.
+          </Typography>
+        )}
+      </Stack>
+      <Stack direction="row" spacing={1}>
+        <Button
+          variant="outlined"
+          fullWidth
+          onClick={onBack}
+          sx={{
+            borderRadius: 2,
+            fontWeight: 600,
+            fontSize: 12,
+            letterSpacing: 0.5,
+            py: 0.9,
+            textTransform: "uppercase",
+            color: "text.secondary",
+            borderColor: "divider",
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          fullWidth
+          onClick={onSubmit}
+          disabled={saving}
+          sx={{
+            borderRadius: 2,
+            fontWeight: 700,
+            fontSize: 12,
+            letterSpacing: 0.5,
+            py: 0.9,
+            textTransform: "uppercase",
+            boxShadow: "0 2px 8px rgba(var(--mui-palette-primary-mainChannel) / 0.35)",
+          }}
+        >
+          {saving ? <CircularProgress size={17} color="inherit" /> : "Create Supplier"}
+        </Button>
+      </Stack>
+    </Stack>
+  ) : (
+    <Stack
+      direction="row"
+      spacing={2}
+      sx={{ alignItems: "center", justifyContent: "space-between", flexWrap: "nowrap" }}
+    >
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center", minWidth: 0, overflow: "hidden" }}>
+        {allMandatoryFilled ? (
+          <>
+            <CheckCircleIcon sx={{ color: "success.main", fontSize: 18, flexShrink: 0 }} />
+            <Typography variant="body2" color="success.main" sx={{ fontWeight: 500, whiteSpace: "nowrap" }}>
+              All mandatory fields completed.
+            </Typography>
+          </>
+        ) : (
+          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+            {filledCount}/{totalCount} required fields filled.
+          </Typography>
+        )}
+      </Stack>
+      <Stack direction="row" spacing={1.5} sx={{ flexShrink: 0 }}>
+        <Button
+          variant="outlined"
+          onClick={onBack}
+          sx={{
+            borderRadius: 2,
+            fontWeight: 600,
+            letterSpacing: 0.5,
+            whiteSpace: "nowrap",
+            textTransform: "uppercase",
+            px: { sm: 2, md: 3 },
+            color: "text.secondary",
+            borderColor: "divider",
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          onClick={onSubmit}
+          disabled={saving}
+          startIcon={saving ? undefined : <BusinessCenterIcon fontSize="small" />}
+          sx={{
+            borderRadius: 2,
+            fontWeight: 700,
+            letterSpacing: 0.5,
+            whiteSpace: "nowrap",
+            textTransform: "uppercase",
+            px: { sm: 2, md: 3 },
+            boxShadow: "0 2px 8px rgba(var(--mui-palette-primary-mainChannel) / 0.35)",
+          }}
+        >
+          {saving ? <CircularProgress size={20} color="inherit" /> : "Create Supplier"}
+        </Button>
+      </Stack>
+    </Stack>
+  );
+}
 
 export default function CreateSupplierPage() {
   const router = useRouter();
@@ -878,124 +1010,19 @@ export default function CreateSupplierPage() {
             backdropFilter: "blur(8px)",
           }}
         >
-          {isMobile ? (
-            <Stack spacing={1}>
-              <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-                {allMandatoryFilled ? (
-                  <>
-                    <CheckCircleIcon sx={{ color: "success.main", fontSize: 15 }} />
-                    <Typography variant="caption" color="success.main" sx={{ fontWeight: 500 }}>
-                      All mandatory fields completed.
-                    </Typography>
-                  </>
-                ) : (
-                  <Typography variant="caption" color="text.secondary">
-                    {filledCount}/{totalCount} required fields filled.
-                  </Typography>
-                )}
-              </Stack>
-              <Stack direction="row" spacing={1}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  onClick={() => {
-                    router.back();
-                  }}
-                  sx={{
-                    borderRadius: 2,
-                    fontWeight: 600,
-                    fontSize: 12,
-                    letterSpacing: 0.5,
-                    py: 0.9,
-                    textTransform: "uppercase",
-                    color: "text.secondary",
-                    borderColor: "divider",
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="contained"
-                  fullWidth
-                  onClick={() => {
-                    void handleSubmit();
-                  }}
-                  disabled={saving}
-                  sx={{
-                    borderRadius: 2,
-                    fontWeight: 700,
-                    fontSize: 12,
-                    letterSpacing: 0.5,
-                    py: 0.9,
-                    textTransform: "uppercase",
-                    boxShadow: "0 2px 8px rgba(var(--mui-palette-primary-mainChannel) / 0.35)",
-                  }}
-                >
-                  {saving ? <CircularProgress size={17} color="inherit" /> : "Create Supplier"}
-                </Button>
-              </Stack>
-            </Stack>
-          ) : (
-            <Stack
-              direction="row"
-              spacing={2}
-              sx={{ alignItems: "center", justifyContent: "space-between", flexWrap: "nowrap" }}
-            >
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center", minWidth: 0, overflow: "hidden" }}>
-                {allMandatoryFilled ? (
-                  <>
-                    <CheckCircleIcon sx={{ color: "success.main", fontSize: 18, flexShrink: 0 }} />
-                    <Typography variant="body2" color="success.main" sx={{ fontWeight: 500, whiteSpace: "nowrap" }}>
-                      All mandatory fields completed.
-                    </Typography>
-                  </>
-                ) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                    {filledCount}/{totalCount} required fields filled.
-                  </Typography>
-                )}
-              </Stack>
-              <Stack direction="row" spacing={1.5} sx={{ flexShrink: 0 }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => {
-                    router.back();
-                  }}
-                  sx={{
-                    borderRadius: 2,
-                    fontWeight: 600,
-                    letterSpacing: 0.5,
-                    whiteSpace: "nowrap",
-                    textTransform: "uppercase",
-                    px: { sm: 2, md: 3 },
-                    color: "text.secondary",
-                    borderColor: "divider",
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    void handleSubmit();
-                  }}
-                  disabled={saving}
-                  startIcon={saving ? undefined : <BusinessCenterIcon fontSize="small" />}
-                  sx={{
-                    borderRadius: 2,
-                    fontWeight: 700,
-                    letterSpacing: 0.5,
-                    whiteSpace: "nowrap",
-                    textTransform: "uppercase",
-                    px: { sm: 2, md: 3 },
-                    boxShadow: "0 2px 8px rgba(var(--mui-palette-primary-mainChannel) / 0.35)",
-                  }}
-                >
-                  {saving ? <CircularProgress size={20} color="inherit" /> : "Create Supplier"}
-                </Button>
-              </Stack>
-            </Stack>
-          )}
+          <StickyFooter
+            isMobile={isMobile}
+            allMandatoryFilled={allMandatoryFilled}
+            filledCount={filledCount}
+            totalCount={totalCount}
+            saving={saving}
+            onSubmit={() => {
+              void handleSubmit();
+            }}
+            onBack={() => {
+              router.back();
+            }}
+          />
         </Box>
       )}
     </Box>

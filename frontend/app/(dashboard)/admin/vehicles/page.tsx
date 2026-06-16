@@ -87,19 +87,19 @@ function DonutChart({
   booked,
   maintenance,
   total,
-}: {
+}: Readonly<{
   available: number;
   booked: number;
   maintenance: number;
   total: number;
-}): JSX.Element {
+}>): JSX.Element {
   const theme = useTheme();
 
   // Compute percentages
   const safeTotal = total || 1;
   const availPct = (available / safeTotal) * 100;
   const bookedPct = (booked / safeTotal) * 100;
-  const maintPct = (maintenance / safeTotal) * 100;
+  const maintenancePct = (maintenance / safeTotal) * 100;
 
   // SVG donut via stroke-dasharray on a circle
   const radius = 42;
@@ -112,18 +112,18 @@ function DonutChart({
   }
 
   const segments: Segment[] = useMemo(() => {
-    const segs: { pct: number; color: string }[] = [
+    const segmentsData: { pct: number; color: string }[] = [
       { pct: availPct, color: theme.palette.success.main },
       { pct: bookedPct, color: theme.palette.primary.main },
-      { pct: maintPct, color: theme.palette.warning.main },
+      { pct: maintenancePct, color: theme.palette.warning.main },
     ];
     let cumulative = 0;
-    return segs.map(s => {
+    return segmentsData.map(s => {
       const offset = (cumulative / 100) * circumference;
       cumulative += s.pct;
       return { ...s, offset };
     });
-  }, [availPct, bookedPct, maintPct, circumference, theme]);
+  }, [availPct, bookedPct, maintenancePct, circumference, theme]);
 
   return (
     <Box sx={{ position: "relative", width: 110, height: 110, flexShrink: 0 }}>
@@ -167,7 +167,7 @@ function DonutChart({
 }
 
 // ── Trend badge ──
-function TrendBadge({ value }: { value?: number }): JSX.Element | null {
+function TrendBadge({ value }: Readonly<{ value?: number }>): JSX.Element | null {
   if (value === undefined) return null;
   const isUp = value >= 0;
   return (
@@ -199,13 +199,13 @@ function StatCard({
   value,
   trend,
   iconColor,
-}: {
+}: Readonly<{
   icon: JSX.Element;
   label: string;
   value: number;
   trend?: number;
   iconColor: string;
-}): JSX.Element {
+}>): JSX.Element {
   return (
     <Paper
       elevation={0}
@@ -252,7 +252,7 @@ function StatCard({
 }
 
 // ── Legend item ──
-function LegendItem({ color, label, pct }: { color: string; label: string; pct: number }): JSX.Element {
+function LegendItem({ color, label, pct }: Readonly<{ color: string; label: string; pct: number }>): JSX.Element {
   return (
     <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between" }}>
       <Stack direction="row" spacing={0.8} sx={{ alignItems: "center" }}>
@@ -289,7 +289,7 @@ function FleetOverview({
   const safeTotal = total || 1;
   const availPct = Math.round((availableCount / safeTotal) * 100);
   const bookedPct = Math.round((rentalCount / safeTotal) * 100);
-  const maintPct = Math.round((maintenanceCount / safeTotal) * 100);
+  const maintenancePct = Math.round((maintenanceCount / safeTotal) * 100);
 
   return (
     <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -313,7 +313,7 @@ function FleetOverview({
             <Stack spacing={1} sx={{ flex: 1 }}>
               <LegendItem color={theme.palette.success.main} label="Available" pct={availPct} />
               <LegendItem color={theme.palette.primary.main} label="Booked" pct={bookedPct} />
-              <LegendItem color={theme.palette.warning.main} label="Maintenance" pct={maintPct} />
+              <LegendItem color={theme.palette.warning.main} label="Maintenance" pct={maintenancePct} />
             </Stack>
           </Stack>
         </Paper>
@@ -1168,7 +1168,7 @@ export default function AdminCarsPage() {
   const availableCount = vehicleStats?.availableVehicles ?? 0;
   const rentalCount = vehicleStats?.onRentalVehicles ?? 0;
   // Added fallback logic to retrieve maintenance count or default to 0
-  const maintenanceCount = (vehicleStats as any)?.maintenanceVehicles ?? 0;
+  const maintenanceCount = vehicleStats?.maintenanceVehicles ?? 0;
 
   // ── HANDLERS ──
   const handleDelete = useCallback((id: string, isAvailable: boolean, hasBookings?: boolean) => {
