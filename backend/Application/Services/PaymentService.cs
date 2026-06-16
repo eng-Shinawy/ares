@@ -22,6 +22,7 @@ public class PaymentService : IPaymentService
     private readonly IRefundCalculator _refundCalculator;
     private readonly PaymobSettings _paymobSettings;
     private readonly ILogger<PaymentService> _logger;
+    private readonly ICommissionService? _commissionService;
 
     public PaymentService(
         IPaymentRepository paymentRepository,
@@ -30,7 +31,8 @@ public class PaymentService : IPaymentService
         IPaymobClient paymob,
         IRefundCalculator refundCalculator,
         IOptions<PaymobSettings> paymobSettings,
-        ILogger<PaymentService> logger)
+        ILogger<PaymentService> logger,
+        ICommissionService? commissionService = null)
     {
         _paymentRepository = paymentRepository;
         _bookingRepository = bookingRepository;
@@ -39,6 +41,7 @@ public class PaymentService : IPaymentService
         _refundCalculator = refundCalculator;
         _paymobSettings = paymobSettings.Value;
         _logger = logger;
+        _commissionService = commissionService;
     }
 
     public async Task<PaymentResponse> ProcessPaymentAsync(
@@ -115,6 +118,7 @@ public class PaymentService : IPaymentService
 
             // Requirement 7.12: Update booking status after successful payment
             booking.Status = Backend.Domain.Entities.Enums.BookingStatus.Confirmed;
+            await PopulateCommissionFieldsAsync(booking, cancellationToken);
             await _bookingRepository.UpdateAsync(booking, cancellationToken);
         }
         else
@@ -408,7 +412,7 @@ Thank you for your business!
         var amountCents = (long)(amount * 100);
 
         var authToken = await _paymob.GetAuthTokenAsync(ct);
-        
+
         // Ensure merchant_order_id is unique across retries
         var merchantOrderId = $"{bookingId}_{Guid.NewGuid().ToString("N").Substring(0, 8)}";
         var orderId = await _paymob.CreateOrderAsync(authToken, amountCents, "EGP", merchantOrderId, ct);
@@ -459,7 +463,7 @@ Thank you for your business!
 
         if (!queryParams.TryGetValue("hmac", out var receivedHmac) || !VerifyHmac(_paymobSettings.HmacSecret, queryParams, receivedHmac))
         {
-            _logger.LogWarning("Paymob HMAC verification failed for order {OrderId}. Received: {Hmac}", 
+            _logger.LogWarning("Paymob HMAC verification failed for order {OrderId}. Received: {Hmac}",
                 queryParams.GetValueOrDefault("order"), receivedHmac);
             return (false, extractedBookingId);
         }
@@ -491,7 +495,10 @@ Thank you for your business!
             payment.FailureReason = reason;
 
         if (success && payment.Booking != null)
+        {
             payment.Booking.Status = BookingStatus.Confirmed;
+            await PopulateCommissionFieldsAsync(payment.Booking, ct);
+        }
 
         await _context.SaveChangesAsync(ct);
         return (success, payment.BookingId);
@@ -549,6 +556,11 @@ Thank you for your business!
 
         var result = _refundCalculator.Calculate(booking.Status, booking.PickupDate ?? DateTime.UtcNow.AddDays(1), payment.Amount);
         var refundAmount = isAdmin && adminOverrideAmount.HasValue ? adminOverrideAmount.Value : result.RefundAmount;
+        var cancellationFee = payment.Amount - refundAmount;
+
+        var commissionPercentage = booking.CommissionPercentage ?? 0m;
+        var refundCommissionAmount = cancellationFee * (commissionPercentage / 100m);
+        var refundSupplierAmount = cancellationFee - refundCommissionAmount;
 
         if (refundAmount > 0 && payment.PaymobTransactionId.HasValue)
         {
@@ -563,7 +575,9 @@ Thank you for your business!
             PolicyType = result.PolicyType,
             RefundPercentage = result.RefundPercentage,
             OriginalAmount = payment.Amount,
-            CancellationFee = payment.Amount - refundAmount,
+            CancellationFee = cancellationFee,
+            RefundCommissionAmount = Math.Round(refundCommissionAmount, 2),
+            RefundSupplierAmount = Math.Round(refundSupplierAmount, 2),
             Currency = payment.Currency,
             RefundStatus = refundAmount > 0 ? RefundStatus.Processing : RefundStatus.Completed,
             RefundTransactionId = refundAmount > 0 ? Guid.NewGuid() : null,
@@ -590,21 +604,51 @@ Thank you for your business!
 
         var authToken = await _paymob.GetAuthTokenAsync(ct);
         var tx = await _paymob.GetTransactionsByOrderIdAsync(authToken, payment.PaymobOrderId, ct);
-        
+
         if (tx == null)
             return false;
 
         payment.Status = tx.Success ? "Captured" : "Failed";
         payment.ProcessedAt = DateTime.UtcNow;
         payment.PaymobTransactionId = tx.Id;
-        
+
         if (!tx.Success && !string.IsNullOrEmpty(tx.Reason))
             payment.FailureReason = tx.Reason;
 
         if (tx.Success && payment.Booking != null)
+        {
             payment.Booking.Status = BookingStatus.Confirmed;
+            await PopulateCommissionFieldsAsync(payment.Booking, ct);
+        }
 
         await _context.SaveChangesAsync(ct);
         return tx.Success;
+    }
+
+    private async Task PopulateCommissionFieldsAsync(Booking booking, CancellationToken cancellationToken)
+    {
+        if (booking.CommissionPercentage == null || booking.CommissionPercentage == 0m)
+        {
+            decimal commissionPercentage = 10.0m;
+            decimal commissionAmount;
+            decimal supplierAmount;
+
+            if (_commissionService != null)
+            {
+                commissionPercentage = await _commissionService.GetEffectiveCommissionAsync(booking.VehicleId, cancellationToken);
+                var result = _commissionService.CalculateCommission(booking.TotalPrice ?? 0m, commissionPercentage);
+                commissionAmount = result.CommissionAmount;
+                supplierAmount = result.SupplierAmount;
+            }
+            else
+            {
+                commissionAmount = Math.Round((booking.TotalPrice ?? 0m) * (commissionPercentage / 100m), 2);
+                supplierAmount = (booking.TotalPrice ?? 0m) - commissionAmount;
+            }
+
+            booking.CommissionPercentage = commissionPercentage;
+            booking.CommissionAmount = commissionAmount;
+            booking.SupplierAmount = supplierAmount;
+        }
     }
 }

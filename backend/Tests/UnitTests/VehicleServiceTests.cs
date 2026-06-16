@@ -22,6 +22,7 @@ public class VehicleServiceTests : IDisposable
     private readonly Mock<IReviewRepository> _reviewRepositoryMock;
     private readonly Mock<IBookingRepository> _bookingRepositoryMock;
     private readonly Mock<IApplicationDbContext> _contextMock;
+    private readonly Mock<IPricingService> _pricingServiceMock;
     private readonly VehicleService _vehicleService;
 
     public VehicleServiceTests()
@@ -30,12 +31,35 @@ public class VehicleServiceTests : IDisposable
         _reviewRepositoryMock = new Mock<IReviewRepository>();
         _bookingRepositoryMock = new Mock<IBookingRepository>();
         _contextMock = new Mock<IApplicationDbContext>();
+        _pricingServiceMock = new Mock<IPricingService>();
+
+        var promotionsQueryable = new List<Promotion>().AsQueryable().BuildMockDbSet();
+        _contextMock.Setup(x => x.Promotions).Returns(promotionsQueryable.Object);
+
+        var categoryOffersQueryable = new List<CategoryOffer>().AsQueryable().BuildMockDbSet();
+        _contextMock.Setup(x => x.CategoryOffers).Returns(categoryOffersQueryable.Object);
+
+        _pricingServiceMock.Setup(x => x.CalculateBookingPricingAsync(It.IsAny<Guid>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid vehicleId, DateTime pickup, DateTime @return, CancellationToken ct) =>
+            {
+                var vehicle = _vehicleRepositoryMock.Object.GetByIdAsync(vehicleId, ct).GetAwaiter().GetResult();
+                if (vehicle == null)
+                {
+                    throw new NotFoundException($"Vehicle with ID {vehicleId} not found");
+                }
+                var pricePerDay = vehicle.PricePerDay ?? 0m;
+                var days = (@return - pickup).Days;
+                if (days <= 0) days = 1;
+                var total = pricePerDay * days;
+                return (total, 0m, total);
+            });
 
         _vehicleService = new VehicleService(
             _vehicleRepositoryMock.Object,
             _reviewRepositoryMock.Object,
             _bookingRepositoryMock.Object,
-            _contextMock.Object);
+            _contextMock.Object,
+            _pricingServiceMock.Object);
     }
 
     public void Dispose()
@@ -1130,6 +1154,7 @@ public class VehicleServiceTests : IDisposable
             Seats: 5,
             PricePerDay: 100.00m,
             LocationCity: "Test City",
+            CategoryId: Guid.NewGuid(),
             Description: "Test vehicle description",
             Status: "Active",
             AvailabilityStatus: "Available"
@@ -1222,6 +1247,7 @@ public class VehicleServiceTests : IDisposable
             Seats: 5,
             PricePerDay: 100.00m,
             LocationCity: "Test City",
+            CategoryId: Guid.NewGuid(),
             Description: "Test vehicle description"
         );
 
@@ -1254,6 +1280,7 @@ public class VehicleServiceTests : IDisposable
             Seats: 5,
             PricePerDay: 100.00m,
             LocationCity: "Test City",
+            CategoryId: Guid.NewGuid(),
             Description: "Test vehicle description"
         );
 
@@ -1308,6 +1335,7 @@ public class VehicleServiceTests : IDisposable
             Seats: 5,
             PricePerDay: 120.00m,
             LocationCity: "New City",
+            CategoryId: null,
             Description: "Updated description",
             Status: "Active",
             AvailabilityStatus: "Available"
@@ -1384,6 +1412,7 @@ public class VehicleServiceTests : IDisposable
             Seats: null,
             PricePerDay: 120.00m,
             LocationCity: null,
+            CategoryId: null,
             Description: null,
             Status: null,
             AvailabilityStatus: null
@@ -1442,6 +1471,7 @@ public class VehicleServiceTests : IDisposable
             Seats: null,
             PricePerDay: null,
             LocationCity: null,
+            CategoryId: null,
             Description: null,
             Status: null,
             AvailabilityStatus: null
@@ -1489,6 +1519,7 @@ public class VehicleServiceTests : IDisposable
             Seats: null,
             PricePerDay: null,
             LocationCity: null,
+            CategoryId: null,
             Description: null,
             Status: null,
             AvailabilityStatus: null
@@ -1684,6 +1715,7 @@ public class VehicleServiceTests : IDisposable
             Seats: 5,
             PricePerDay: 100.00m,
             LocationCity: "Test City",
+            CategoryId: Guid.NewGuid(),
             Description: "Test vehicle"
         );
 
@@ -1735,6 +1767,7 @@ public class VehicleServiceTests : IDisposable
             Seats: null,
             PricePerDay: null,
             LocationCity: null,
+            CategoryId: null,
             Description: "New description", // Valid update
             Status: null,
             AvailabilityStatus: null

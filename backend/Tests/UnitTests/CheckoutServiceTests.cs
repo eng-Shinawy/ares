@@ -25,7 +25,9 @@ public class CheckoutServiceTests
     private readonly Mock<IDriverReviewRepository> _driverReviewRepositoryMock = new();
     private readonly Mock<IDriverPricingService> _driverPricingServiceMock = new();
     private readonly Mock<IVerificationService> _verificationServiceMock = new();
+    private readonly Mock<ICommissionService> _commissionServiceMock = new();
     private readonly Mock<IApplicationDbContext> _contextMock = new();
+    private readonly Mock<IPricingService> _pricingServiceMock = new();
     private readonly IConfiguration _configuration =
         new ConfigurationBuilder().AddInMemoryCollection().Build();
     private readonly CheckoutService _service;
@@ -43,6 +45,8 @@ public class CheckoutServiceTests
             _driverReviewRepositoryMock.Object,
             _driverPricingServiceMock.Object,
             _verificationServiceMock.Object,
+            _commissionServiceMock.Object,
+            _pricingServiceMock.Object,
             _contextMock.Object,
             _configuration,
             notificationService: null);
@@ -91,6 +95,12 @@ public class CheckoutServiceTests
         _driverPricingServiceMock
             .Setup(x => x.GetDailyRateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(25.00m);
+        _commissionServiceMock
+            .Setup(x => x.GetEffectiveCommissionAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(10m);
+        _commissionServiceMock
+            .Setup(x => x.CalculateCommission(It.IsAny<decimal>(), It.IsAny<decimal>()))
+            .Returns((decimal total, decimal pct) => (total * pct / 100m, total - (total * pct / 100m)));
     }
 
     private static CheckoutRequest BuildRequest(Guid vehicleId, bool needDriver, Guid? driverProfileId)

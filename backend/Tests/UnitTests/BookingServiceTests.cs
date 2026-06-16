@@ -19,6 +19,7 @@ public class BookingServiceTests
     private readonly Mock<IVehicleRepository> _vehicleRepositoryMock;
     private readonly Mock<IApplicationDbContext> _contextMock;
     private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
+    private readonly Mock<IPricingService> _pricingServiceMock;
     private readonly BookingService _bookingService;
 
     public BookingServiceTests()
@@ -27,6 +28,7 @@ public class BookingServiceTests
         _vehicleRepositoryMock = new Mock<IVehicleRepository>();
         _contextMock = new Mock<IApplicationDbContext>();
         _userManagerMock = MockUserManager();
+        _pricingServiceMock = new Mock<IPricingService>();
 
         var emptyUserAddresses = new List<UserAddress>().AsQueryable();
         var userAddressesDbSet = emptyUserAddresses.BuildMockDbSet();
@@ -36,12 +38,20 @@ public class BookingServiceTests
         var driversDbSet = emptyDrivers.BuildMockDbSet();
         _contextMock.Setup(x => x.Drivers).Returns(driversDbSet.Object);
 
+        _pricingServiceMock.Setup(x => x.CalculateBookingPricingAsync(It.IsAny<Guid>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((100.00m, 0m, 100.00m));
+
         _bookingService = new BookingService(
             _bookingRepositoryMock.Object,
             _vehicleRepositoryMock.Object,
             _contextMock.Object,
             _userManagerMock.Object,
-            null!);
+            notificationService: null,
+            verificationService: null,
+            driverPricingService: null,
+            driverProfileRepository: null,
+            commissionService: null,
+            pricingService: _pricingServiceMock.Object);
     }
 
     private static Mock<UserManager<ApplicationUser>> MockUserManager()
@@ -55,16 +65,16 @@ public class BookingServiceTests
         var validators = new List<IUserValidator<ApplicationUser>> { validator.Object };
         var pwdValidator = new Mock<IPasswordValidator<ApplicationUser>>();
         var pwdValidators = new List<IPasswordValidator<ApplicationUser>> { pwdValidator.Object };
-        
+
         var userManager = new Mock<UserManager<ApplicationUser>>(
-            store.Object, 
-            options.Object, 
-            hasher.Object, 
-            validators, 
-            pwdValidators, 
-            null!, 
-            null!, 
-            null!, 
+            store.Object,
+            options.Object,
+            hasher.Object,
+            validators,
+            pwdValidators,
+            null!,
+            null!,
+            null!,
             null!);
 
         userManager.Setup(x => x.FindByIdAsync(It.IsAny<string>()))
@@ -184,9 +194,9 @@ public class BookingServiceTests
             PayLater: false
         );
 
-        var vehicle = new Vehicle 
-        { 
-            Id = vehicleId, 
+        var vehicle = new Vehicle
+        {
+            Id = vehicleId,
             UserId = supplierId, // Owned by the same user
             IsActive = true,
             PricePerDay = 50.00m
@@ -338,6 +348,9 @@ public class BookingServiceTests
         _bookingRepositoryMock.Setup(x => x.ReserveVehicleAtomicAsync(It.IsAny<Booking>(), It.IsAny<BookingStatus>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        _pricingServiceMock.Setup(x => x.CalculateBookingPricingAsync(vehicleId, pickupDate, returnDate, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((400.00m, 0m, 400.00m));
+
         // Act
         var result = await _bookingService.CreateBookingAsync(request, userId);
 
@@ -395,6 +408,9 @@ public class BookingServiceTests
 
         _bookingRepositoryMock.Setup(x => x.ReserveVehicleAtomicAsync(It.IsAny<Booking>(), It.IsAny<BookingStatus>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
+        _pricingServiceMock.Setup(x => x.CalculateBookingPricingAsync(vehicleId, pickupDate, returnDate, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((expectedTotal, 0m, expectedTotal));
 
         // Act
         var result = await _bookingService.CreateBookingAsync(request, userId);

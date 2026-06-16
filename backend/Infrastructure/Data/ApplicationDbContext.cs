@@ -23,6 +23,9 @@ namespace Backend.Infrastructure.Data
         public DbSet<UserAddress> UserAddresses { get; set; }
         public DbSet<Verification> Verifications { get; set; }
         public DbSet<CompanyProfile> CompanyProfiles { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<CategoryOffer> CategoryOffers { get; set; }
+        public DbSet<Promotion> Promotions { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<VehicleImage> VehicleImages { get; set; }
         public DbSet<Driver> Drivers { get; set; }
@@ -33,8 +36,6 @@ namespace Backend.Infrastructure.Data
         public DbSet<DriverProfile> DriverProfiles { get; set; }
         public DbSet<DriverWorkArea> DriverWorkAreas { get; set; }
         public DbSet<ServiceArea> ServiceAreas { get; set; }
-        public DbSet<DriverRequest> DriverRequests { get; set; }
-        public DbSet<DriverRequestResponse> DriverRequestResponses { get; set; }
         public DbSet<DriverReview> DriverReviews { get; set; }
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<BookingPayment> Payments { get; set; }
@@ -56,6 +57,9 @@ namespace Backend.Infrastructure.Data
         public DbSet<InspectionImage> InspectionImages { get; set; }
         public DbSet<VehicleAvailability> VehicleAvailabilities { get; set; }
         // Explicit interface implementation for IApplicationDbContext
+        IQueryable<Category> IApplicationDbContext.Categories => Categories;
+        IQueryable<CategoryOffer> IApplicationDbContext.CategoryOffers => CategoryOffers;
+        IQueryable<Promotion> IApplicationDbContext.Promotions => Promotions;
         IQueryable<Vehicle> IApplicationDbContext.Vehicles => Vehicles;
         IQueryable<VehicleImage> IApplicationDbContext.VehicleImages => VehicleImages;
         IQueryable<Booking> IApplicationDbContext.Bookings => Bookings;
@@ -75,15 +79,19 @@ namespace Backend.Infrastructure.Data
         IQueryable<DriverProfile> IApplicationDbContext.DriverProfiles => DriverProfiles;
         IQueryable<DriverWorkArea> IApplicationDbContext.DriverWorkAreas => DriverWorkAreas;
         IQueryable<ServiceArea> IApplicationDbContext.ServiceAreas => ServiceAreas;
-        IQueryable<DriverRequest> IApplicationDbContext.DriverRequests => DriverRequests;
-        IQueryable<DriverRequestResponse> IApplicationDbContext.DriverRequestResponses => DriverRequestResponses;
         IQueryable<DriverReview> IApplicationDbContext.DriverReviews => DriverReviews;
         IQueryable<VehicleInspection> IApplicationDbContext.VehicleInspections => VehicleInspections;
         IQueryable<InspectionImage> IApplicationDbContext.InspectionImages => InspectionImages;
+        IQueryable<Inspector> IApplicationDbContext.Inspectors => Inspectors;
 
         public void AddFavorite(Favorite favorite)
         {
             Favorites.Add(favorite);
+        }
+
+        public void AddVehicleInspection(VehicleInspection inspection)
+        {
+            VehicleInspections.Add(inspection);
         }
 
         public void AddBookingCancellation(BookingCancellation cancellation)
@@ -138,6 +146,36 @@ namespace Backend.Infrastructure.Data
         public void AddSystemSetting(SystemSetting setting)
         {
             SystemSettings.Add(setting);
+        }
+
+        public void AddCategory(Category category)
+        {
+            Categories.Add(category);
+        }
+
+        public void RemoveCategory(Category category)
+        {
+            Categories.Remove(category);
+        }
+
+        public void AddPromotion(Promotion promotion)
+        {
+            Promotions.Add(promotion);
+        }
+
+        public void RemovePromotion(Promotion promotion)
+        {
+            Promotions.Remove(promotion);
+        }
+
+        public void AddCategoryOffer(CategoryOffer offer)
+        {
+            CategoryOffers.Add(offer);
+        }
+
+        public void RemoveCategoryOffer(CategoryOffer offer)
+        {
+            CategoryOffers.Remove(offer);
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
