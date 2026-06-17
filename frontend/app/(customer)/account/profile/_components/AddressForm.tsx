@@ -137,11 +137,24 @@ export default function AddressForm({
 
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as {
-          validationErrors?: { message: string }[];
+          validationErrors?: { field?: string; message: string }[];
           message?: string;
         } | null;
-        const msg = body?.validationErrors?.[0]?.message ?? body?.message ?? "Failed to update";
-        throw new Error(msg);
+        
+        if (body?.validationErrors && body.validationErrors.length > 0) {
+          // If the error is about a field not in this form (like the main phone), show it as a server error
+          const firstError = body.validationErrors[0];
+          let msg = firstError.message;
+          if (firstError.field?.toLowerCase() === "phone") {
+            msg = `Main Profile Error: ${msg}. Please update your main phone in the Personal Info section first.`;
+          }
+          setServerError(msg);
+          return;
+        }
+        
+        const msg = body?.message ?? "Failed to update address.";
+        setServerError(msg);
+        return;
       }
       setSuccessMsg("Address saved successfully.");
     } catch (error) {
@@ -246,6 +259,9 @@ export default function AddressForm({
               onChange={v => {
                 setCountry(v);
                 if (touched.country) validateField("country", v);
+              }}
+              onBlur={() => {
+                handleBlur("country", country);
               }}
               label="Country"
               error={touched.country && !!fieldErrors.country}
