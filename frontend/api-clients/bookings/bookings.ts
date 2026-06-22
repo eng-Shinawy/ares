@@ -361,6 +361,7 @@ export async function createBooking(
     driverId?: string | null;
     payLater?: boolean;
     customerUserId?: string;
+    paymentMethod?: string;
   }
 ): Promise<{ bookingId: string; bookingNumber: string; status: string; totalPrice: number; message: string }> {
   return apiFetchJson(`/api/bookings/create`, {
@@ -379,6 +380,7 @@ export async function createBooking(
       PickupLocation: payload.pickupLocation ?? null,
       DropOffLocation: payload.dropOffLocation ?? null,
       CustomerUserId: payload.customerUserId ?? null,
+      PaymentMethod: payload.paymentMethod ?? null,
     }),
   });
 }
