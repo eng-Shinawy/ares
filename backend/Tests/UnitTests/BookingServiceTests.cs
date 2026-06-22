@@ -37,9 +37,16 @@ public class BookingServiceTests
         _mediatorMock = new Mock<IMediator>();
         _configurationMock = new Mock<IConfiguration>();
 
-        // Set up default pricing behavior to return 100 for any calculate call
+        // Set up default pricing behavior to calculate based on vehicle rate
         _pricingServiceMock.Setup(x => x.CalculateBookingPricingAsync(It.IsAny<Guid>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((100m, 0m, 100m));
+            .ReturnsAsync((Guid vId, DateTime pickup, DateTime ret, CancellationToken ct) => {
+                var vehicle = _vehicleRepositoryMock.Object.GetByIdAsync(vId, ct).GetAwaiter().GetResult();
+                var rate = vehicle?.PricePerDay ?? 100m;
+                var days = (ret - pickup).Days;
+                if (days <= 0) days = 1;
+                var price = rate * days;
+                return (price, 0m, price);
+            });
 
         var emptyUserAddresses = new List<UserAddress>().AsQueryable();
         var userAddressesDbSet = emptyUserAddresses.BuildMockDbSet();
@@ -143,7 +150,7 @@ public class BookingServiceTests
         Assert.Equal("Booking created successfully", result.Message);
 
         _vehicleRepositoryMock.Verify(x => x.IsAvailableAsync(vehicleId, pickupDate, returnDate, It.IsAny<CancellationToken>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Once);
-        _vehicleRepositoryMock.Verify(x => x.GetByIdAsync(vehicleId, It.IsAny<CancellationToken>()), Times.Once);
+        _vehicleRepositoryMock.Verify(x => x.GetByIdAsync(vehicleId, It.IsAny<CancellationToken>()), Times.AtLeastOnce);
         _bookingRepositoryMock.Verify(x => x.AddAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()), Times.Once);
         _bookingRepositoryMock.Verify(x => x.ReserveVehicleAtomicAsync(It.IsAny<Booking>(), It.IsAny<BookingStatus>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
