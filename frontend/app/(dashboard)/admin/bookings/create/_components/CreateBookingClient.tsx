@@ -181,6 +181,12 @@ export default function CreateBookingClient() {
   useEffect(() => {
     const token = session?.accessToken;
     if (!token) return;
+
+    if (!selectedPickupLocation) {
+      setVehicleOptions([]);
+      return;
+    }
+
     const controller = new AbortController();
 
     const runSearch = async () => {
@@ -193,6 +199,7 @@ export default function CreateBookingClient() {
             pickupDate: pickupDate ? pickupDate.toISOString() : undefined,
             returnDate: returnDate ? returnDate.toISOString() : undefined,
             customerUserId: customer?.id,
+            pickupLocationId: selectedPickupLocation.id,
             limit: 20,
           },
           controller.signal
@@ -218,7 +225,7 @@ export default function CreateBookingClient() {
       clearTimeout(handle);
       controller.abort();
     };
-  }, [vehicleSearch, pickupDate, returnDate, session?.accessToken, vehicle, customer?.id]);
+  }, [vehicleSearch, pickupDate, returnDate, session?.accessToken, vehicle, customer?.id, selectedPickupLocation]);
 
   // ── Location autocomplete (pickup/dropoff) ─────────────────────────
   const fetchLocationSuggestions = async (query: string, type: "pickup" | "dropoff", signal: AbortSignal) => {
@@ -341,6 +348,8 @@ export default function CreateBookingClient() {
           returnDate: returnDate.toISOString(),
           pickupLocation,
           dropOffLocation,
+          pickupLocationId: selectedPickupLocation?.id,
+          dropOffLocationId: selectedDropOffLocation?.id,
           customerUserId: customer.id,
           paymentMethod,
         });
@@ -725,7 +734,9 @@ export default function CreateBookingClient() {
                 getOptionLabel={option => option.name}
                 filterOptions={x => x}
                 noOptionsText={
-                  !selectedPickupLocation ? "Please select a pickup location first." : "No available vehicles."
+                  !selectedPickupLocation 
+                    ? "Please select a pickup location first." 
+                    : "No available vehicles found for the selected location and dates."
                 }
                 slotProps={{
                   paper: {
