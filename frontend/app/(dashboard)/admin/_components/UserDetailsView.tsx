@@ -1,5 +1,7 @@
 "use client";
 
+// cspell:ignore pendingverification
+
 import React, { useState } from "react";
 import {
   Box,
@@ -25,6 +27,7 @@ import {
   TextField,
   useTheme,
   alpha,
+  Theme,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
@@ -81,7 +84,7 @@ export interface UserDetailsViewProps {
       readonly inspectionId: string;
       readonly bookingId: string;
       readonly bookingNumber: string | null;
-      readonly status: "Pending" | "Approved" | "Rejected" | string;
+      readonly status: string;
       readonly inspectionDate: string;
       readonly submittedAt: string | null;
     }[];
@@ -169,107 +172,203 @@ function SectionLabel({ children }: { readonly children: React.ReactNode }) {
   );
 }
 
-export default function UserDetailsView({
+const BREADCRUMB_CATEGORIES: Record<UserType, string> = {
+  supplier: "Suppliers",
+  driver: "Drivers",
+  inspector: "Inspectors",
+  user: "Users",
+};
+
+const PAGE_TITLES: Record<UserType, string> = {
+  supplier: "Supplier Details",
+  driver: "Driver Details",
+  inspector: "Inspector Details",
+  user: "User Details",
+};
+
+const STATUS_CATEGORIES: Record<string, "success" | "warning" | "error" | undefined> = {
+  active: "success",
+  verified: "success",
+  approved: "success",
+  pending: "warning",
+  pendingverification: "warning",
+  blocked: "error",
+  rejected: "error",
+  suspended: "error",
+};
+
+function getCompletenessItems(userType: UserType, data: UserDetailsViewProps["data"]) {
+  const statusLower = (data.status || "").toLowerCase();
+  const items = [
+    {
+      label: "Status: " + statusLower,
+      done:
+        statusLower === "active" ||
+        statusLower === "verified" ||
+        statusLower === "approved" ||
+        statusLower === "pending",
+    },
+    { label: "Email configured", done: Boolean(data.email) },
+    { label: "Phone Number configured", done: Boolean(data.phoneNumber) },
+  ];
+  if (userType === "supplier") {
+    items.push({ label: "Company profile details", done: Boolean(data.companyProfile?.companyName) });
+  } else if (userType === "driver") {
+    items.push({ label: "License verification uploaded", done: Boolean(data.licenseNumber && data.licenseImage) });
+  } else if (userType === "inspector") {
+    items.push({ label: "Employee code assigned", done: Boolean(data.employeeCode) });
+  } else {
+    items.push({ label: "Role assigned", done: Boolean(data.roles && data.roles.length > 0) });
+  }
+  return items;
+}
+
+function getStatusDetails(statusVal: string, theme: Theme) {
+  const s = (statusVal || "").toLowerCase();
+  const category = STATUS_CATEGORIES[s];
+
+  if (category === "success") {
+    const mainColor = theme.palette.status.active.main || theme.palette.success.main;
+    return {
+      color: mainColor,
+      bgColor: alpha(mainColor, 0.12),
+      borderColor: alpha(mainColor, 0.25),
+      icon: <CheckCircleOutlineIcon sx={{ fontSize: 15 }} />,
+      label: statusVal || "Active",
+      desc: "This account is active and verified with full platform access.",
+    };
+  }
+
+  if (category === "warning") {
+    const mainColor = theme.palette.status.pending.main || theme.palette.warning.main;
+    return {
+      color: mainColor,
+      bgColor: alpha(mainColor, 0.12),
+      borderColor: alpha(mainColor, 0.25),
+      icon: <AccessTimeIcon sx={{ fontSize: 15 }} />,
+      label: statusVal || "Pending",
+      desc: "This account is awaiting confirmation or verification.",
+    };
+  }
+
+  if (category === "error") {
+    const mainColor = theme.palette.status.blocked.main || theme.palette.error.main;
+    return {
+      color: mainColor,
+      bgColor: alpha(mainColor, 0.12),
+      borderColor: alpha(mainColor, 0.25),
+      icon: <BlockIcon sx={{ fontSize: 15 }} />,
+      label: statusVal || "Blocked",
+      desc: "This account is restricted from accessing the platform.",
+    };
+  }
+
+  // Default Fallback
+  return {
+    color: theme.palette.text.secondary,
+    bgColor: theme.palette.action.hover,
+    borderColor: theme.palette.divider,
+    icon: <AccessTimeIcon sx={{ fontSize: 15 }} />,
+    label: statusVal || "Unknown",
+    desc: "Status is undefined.",
+  };
+}
+
+interface ExtraActionButtonsProps {
+  readonly userType: UserType;
+  readonly data: UserDetailsViewProps["data"];
+  readonly actionLoading: boolean;
+  readonly onToggleStatus?: () => void | Promise<void>;
+  readonly onApprove?: () => void | Promise<void>;
+  readonly onReject?: (reason: string) => void | Promise<void>;
+  readonly setRejectOpen: (open: boolean) => void;
+}
+
+function ExtraActionButtons({
   userType,
   data,
-  isMock = false,
-  onBack,
-  onEdit,
+  actionLoading,
   onToggleStatus,
   onApprove,
   onReject,
-  actionLoading = false,
-}: UserDetailsViewProps) {
+  setRejectOpen,
+}: ExtraActionButtonsProps) {
+  if (userType === "inspector" && onToggleStatus) {
+    return (
+      <Button
+        variant="contained"
+        disableElevation
+        color={data.isActive ? "error" : "success"}
+        disabled={actionLoading}
+        onClick={() => { void onToggleStatus(); }}
+        sx={{
+          borderRadius: 2,
+          px: 3,
+          fontWeight: 600,
+          textTransform: "none",
+          fontSize: 13,
+        }}
+      >
+        {data.isActive ? "Disable Inspector" : "Enable Inspector"}
+      </Button>
+    );
+  }
+
+  if (userType === "driver") {
+    return (
+      <>
+        {data.status !== "Verified" && onApprove && (
+          <Button
+            variant="contained"
+            color="success"
+            disabled={actionLoading}
+            onClick={() => { void onApprove(); }}
+            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+          >
+            Approve
+          </Button>
+        )}
+        {data.status !== "Rejected" && onReject && (
+          <Button
+            variant="outlined"
+            color="error"
+            disabled={actionLoading}
+            onClick={() => {
+              setRejectOpen(true);
+            }}
+            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+          >
+            Reject
+          </Button>
+        )}
+        {onToggleStatus && (
+          <Button
+            variant="outlined"
+            color={data.isActive ? "warning" : "primary"}
+            disabled={actionLoading}
+            onClick={() => { void onToggleStatus(); }}
+            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+          >
+            {data.isActive ? "Disable Account" : "Enable Account"}
+          </Button>
+        )}
+      </>
+    );
+  }
+
+  return null;
+}
+
+interface FieldRowProps {
+  readonly icon: React.ReactNode;
+  readonly label: string;
+  readonly value: string;
+  readonly accentColor: string;
+}
+
+function FieldRow({ icon, label, value, accentColor }: FieldRowProps) {
   const theme = useTheme();
-  const [rejectOpen, setRejectOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-
-  const name = [data.firstName, data.lastName].filter(Boolean).join(" ") || "User";
-
-  // Breadcrumbs title
-  const breadcrumbCategory = (() => {
-    switch (userType) {
-      case "supplier":
-        return "Suppliers";
-      case "driver":
-        return "Drivers";
-      case "inspector":
-        return "Inspectors";
-      default:
-        return "Users";
-    }
-  })();
-
-  const pageTitle = (() => {
-    switch (userType) {
-      case "supplier":
-        return "Supplier Details";
-      case "driver":
-        return "Driver Details";
-      case "inspector":
-        return "Inspector Details";
-      default:
-        return "User Details";
-    }
-  })();
-
-  // Dynamic Status Details resolver (using MUI Theme palette only)
-  const getStatusDetails = (statusVal: string) => {
-    const s = (statusVal || "").toLowerCase();
-
-    // Success / Active / Verified / Approved
-    if (s === "active" || s === "verified" || s === "approved") {
-      const mainColor = theme.palette.status?.active?.main || theme.palette.success.main;
-      return {
-        color: mainColor,
-        bgColor: alpha(mainColor, 0.12),
-        borderColor: alpha(mainColor, 0.25),
-        icon: <CheckCircleOutlineIcon sx={{ fontSize: 15 }} />,
-        label: statusVal || "Active",
-        desc: "This account is active and verified with full platform access.",
-      };
-    }
-
-    // Warning / Pending / PendingVerification
-    if (s === "pending" || s === "pendingverification") {
-      const mainColor = theme.palette.status?.pending?.main || theme.palette.warning.main;
-      return {
-        color: mainColor,
-        bgColor: alpha(mainColor, 0.12),
-        borderColor: alpha(mainColor, 0.25),
-        icon: <AccessTimeIcon sx={{ fontSize: 15 }} />,
-        label: statusVal || "Pending",
-        desc: "This account is awaiting confirmation or verification.",
-      };
-    }
-
-    // Error / Blocked / Rejected / Suspended
-    if (s === "blocked" || s === "rejected" || s === "suspended") {
-      const mainColor = theme.palette.status?.blocked?.main || theme.palette.error.main;
-      return {
-        color: mainColor,
-        bgColor: alpha(mainColor, 0.12),
-        borderColor: alpha(mainColor, 0.25),
-        icon: <BlockIcon sx={{ fontSize: 15 }} />,
-        label: statusVal || "Blocked",
-        desc: "This account is restricted from accessing the platform.",
-      };
-    }
-
-    // Default Fallback
-    return {
-      color: theme.palette.text.secondary,
-      bgColor: theme.palette.action.hover,
-      borderColor: theme.palette.divider,
-      icon: <AccessTimeIcon sx={{ fontSize: 15 }} />,
-      label: statusVal || "Unknown",
-      desc: "Status is undefined.",
-    };
-  };
-
-  const statusInfo = getStatusDetails(data.status);
-
-  // Field styling labels
+  
   const fieldLabel = {
     fontWeight: 600,
     fontSize: "10px",
@@ -279,57 +378,7 @@ export default function UserDetailsView({
     mb: 0.5,
   };
 
-  // Profile Completeness Score
-  const completenessItems = (() => {
-    const statusLower = (data.status || "").toLowerCase();
-    const items = [
-      {
-        label: "Status: " + statusLower,
-        done:
-          statusLower === "active" ||
-          statusLower === "verified" ||
-          statusLower === "approved" ||
-          statusLower === "pending",
-      },
-      { label: "Email configured", done: Boolean(data.email) },
-      { label: "Phone Number configured", done: Boolean(data.phoneNumber) },
-    ];
-    if (userType === "supplier") {
-      items.push({ label: "Company profile details", done: Boolean(data.companyProfile?.companyName) });
-    } else if (userType === "driver") {
-      items.push({ label: "License verification uploaded", done: Boolean(data.licenseNumber && data.licenseImage) });
-    } else if (userType === "inspector") {
-      items.push({ label: "Employee code assigned", done: Boolean(data.employeeCode) });
-    } else {
-      items.push({ label: "Role assigned", done: Boolean(data.roles && data.roles.length > 0) });
-    }
-    return items;
-  })();
-
-  const completenessScore = Math.round((completenessItems.filter(i => i.done).length / completenessItems.length) * 100);
-
-  // Theme-compliant avatar backgrounds
-  const avatarColors = [
-    theme.palette.primary.main,
-    theme.palette.primary.light,
-    theme.palette.secondary?.main || theme.palette.primary.main,
-    theme.palette.status?.pending?.main || theme.palette.warning.main,
-    theme.palette.status?.active?.main || theme.palette.success.main,
-  ];
-  const avatarBg = avatarColors[(data.firstName?.charCodeAt(0) || 0) % avatarColors.length];
-
-  // ── Row field component (borderless, accent-line style) ──────────────
-  const FieldRow = ({
-    icon,
-    label,
-    value,
-    accentColor,
-  }: {
-    readonly icon: React.ReactNode;
-    readonly label: string;
-    readonly value: string;
-    readonly accentColor: string;
-  }) => (
+  return (
     <Box
       sx={{
         display: "flex",
@@ -379,6 +428,54 @@ export default function UserDetailsView({
       </Box>
     </Box>
   );
+}
+
+export default function UserDetailsView({
+  userType,
+  data,
+  isMock = false,
+  onBack,
+  onEdit,
+  onToggleStatus,
+  onApprove,
+  onReject,
+  actionLoading = false,
+}: UserDetailsViewProps) {
+  const theme = useTheme();
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+
+  const fieldLabel = {
+    fontWeight: 600,
+    fontSize: "10px",
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.8px",
+    color: theme.palette.text.disabled,
+    mb: 0.5,
+  };
+
+  const name = [data.firstName, data.lastName].filter(Boolean).join(" ") || "User";
+
+  // Breadcrumbs title
+  const breadcrumbCategory = BREADCRUMB_CATEGORIES[userType];
+  const pageTitle = PAGE_TITLES[userType];
+
+  const statusInfo = getStatusDetails(data.status, theme);
+
+  // Profile Completeness Score
+  const completenessItems = getCompletenessItems(userType, data);
+
+  const completenessScore = Math.round((completenessItems.filter(i => i.done).length / completenessItems.length) * 100);
+
+  // Theme-compliant avatar backgrounds
+  const avatarColors = [
+    theme.palette.primary.main,
+    theme.palette.primary.light,
+    theme.palette.secondary.main || theme.palette.primary.main,
+    theme.palette.status.pending.main || theme.palette.warning.main,
+    theme.palette.status.active.main || theme.palette.success.main,
+  ];
+  const avatarBg = avatarColors[(data.firstName.charCodeAt(0) || 0) % avatarColors.length];
 
   const handleConfirmReject = () => {
     if (onReject && rejectReason.trim()) {
@@ -469,7 +566,7 @@ export default function UserDetailsView({
                 boxShadow: `0 0 0 2px ${alpha(avatarBg, 0.4)}, 0 4px 16px ${alpha("#000", 0.4)}`,
               }}
             >
-              {data.firstName?.[0]?.toUpperCase() || "?"}
+              {data.firstName.charAt(0).toUpperCase() || "?"}
             </Avatar>
             {/* status dot */}
             <Box
@@ -697,66 +794,15 @@ export default function UserDetailsView({
               </Button>
             )}
 
-            {/* Inspector Toggle Status */}
-            {userType === "inspector" && onToggleStatus && (
-              <Button
-                variant="contained"
-                disableElevation
-                color={data.isActive ? "error" : "success"}
-                disabled={actionLoading}
-                onClick={onToggleStatus}
-                sx={{
-                  borderRadius: 2,
-                  px: 3,
-                  fontWeight: 600,
-                  textTransform: "none",
-                  fontSize: 13,
-                }}
-              >
-                {data.isActive ? "Disable Inspector" : "Enable Inspector"}
-              </Button>
-            )}
-
-            {/* Driver Actions */}
-            {userType === "driver" && (
-              <>
-                {data.status !== "Verified" && onApprove && (
-                  <Button
-                    variant="contained"
-                    color="success"
-                    disabled={actionLoading}
-                    onClick={onApprove}
-                    sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-                  >
-                    Approve
-                  </Button>
-                )}
-                {data.status !== "Rejected" && onReject && (
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    disabled={actionLoading}
-                    onClick={() => {
-                      setRejectOpen(true);
-                    }}
-                    sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-                  >
-                    Reject
-                  </Button>
-                )}
-                {onToggleStatus && (
-                  <Button
-                    variant="outlined"
-                    color={data.isActive ? "warning" : "primary"}
-                    disabled={actionLoading}
-                    onClick={onToggleStatus}
-                    sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-                  >
-                    {data.isActive ? "Disable Account" : "Enable Account"}
-                  </Button>
-                )}
-              </>
-            )}
+            <ExtraActionButtons
+              userType={userType}
+              data={data}
+              actionLoading={actionLoading}
+              onToggleStatus={onToggleStatus}
+              onApprove={onApprove}
+              onReject={onReject}
+              setRejectOpen={setRejectOpen}
+            />
           </Stack>
         </Box>
       </Paper>
@@ -842,7 +888,7 @@ export default function UserDetailsView({
                   gap: 1.5,
                   borderBottom: "1px solid",
                   borderColor: theme.palette.divider,
-                  bgcolor: alpha(theme.palette.secondary?.main || theme.palette.primary.main, 0.03),
+                  bgcolor: alpha(theme.palette.secondary.main || theme.palette.primary.main, 0.03),
                 }}
               >
                 <Box
@@ -850,8 +896,8 @@ export default function UserDetailsView({
                     width: 32,
                     height: 32,
                     borderRadius: 1.5,
-                    bgcolor: alpha(theme.palette.secondary?.main || theme.palette.primary.main, 0.1),
-                    color: theme.palette.secondary?.main || theme.palette.primary.main,
+                    bgcolor: alpha(theme.palette.secondary.main || theme.palette.primary.main, 0.1),
+                    color: theme.palette.secondary.main || theme.palette.primary.main,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -873,7 +919,7 @@ export default function UserDetailsView({
                       icon={<BusinessIcon sx={{ fontSize: 17 }} />}
                       label="Company Name"
                       value={data.companyProfile?.companyName || "No company name"}
-                      accentColor={theme.palette.secondary?.main || theme.palette.primary.main}
+                      accentColor={theme.palette.secondary.main || theme.palette.primary.main}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
@@ -881,7 +927,7 @@ export default function UserDetailsView({
                       icon={<ReceiptLongIcon sx={{ fontSize: 17 }} />}
                       label="Commercial Registration Number"
                       value={data.companyProfile?.commercialRegistrationNumber || "—"}
-                      accentColor={theme.palette.secondary?.main || theme.palette.primary.main}
+                      accentColor={theme.palette.secondary.main || theme.palette.primary.main}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
@@ -889,7 +935,7 @@ export default function UserDetailsView({
                       icon={<AssignmentOutlinedIcon sx={{ fontSize: 17 }} />}
                       label="Tax ID"
                       value={data.companyProfile?.taxId || "—"}
-                      accentColor={theme.palette.secondary?.main || theme.palette.primary.main}
+                      accentColor={theme.palette.secondary.main || theme.palette.primary.main}
                     />
                   </Grid>
                 </Grid>
@@ -1176,21 +1222,21 @@ export default function UserDetailsView({
                   <StatCard
                     label="Pending"
                     value={data.pendingCount ?? 0}
-                    color={theme.palette.status?.pending?.main || theme.palette.warning.main}
+                    color={theme.palette.status.pending.main || theme.palette.warning.main}
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <StatCard
                     label="Approved"
                     value={data.approvedCount ?? 0}
-                    color={theme.palette.status?.active?.main || theme.palette.success.main}
+                    color={theme.palette.status.active.main || theme.palette.success.main}
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <StatCard
                     label="Rejected"
                     value={data.rejectedCount ?? 0}
-                    color={theme.palette.status?.blocked?.main || theme.palette.error.main}
+                    color={theme.palette.status.blocked.main || theme.palette.error.main}
                   />
                 </Grid>
               </Grid>
@@ -1227,7 +1273,7 @@ export default function UserDetailsView({
                     </TableHead>
                     <TableBody>
                       {data.recentInspections.map(r => {
-                        const chip = getStatusDetails(r.status);
+                        const chip = getStatusDetails(r.status, theme);
                         return (
                           <TableRow key={r.inspectionId} hover>
                             <TableCell>{r.bookingNumber || r.bookingId.split("-")[0]}</TableCell>
@@ -1274,7 +1320,7 @@ export default function UserDetailsView({
                 gap: 1.25,
                 borderBottom: "1px solid",
                 borderColor: theme.palette.divider,
-                bgcolor: alpha(theme.palette.status?.pending?.main || theme.palette.warning.main, 0.03),
+                bgcolor: alpha(theme.palette.status.pending.main || theme.palette.warning.main, 0.03),
               }}
             >
               <Box
@@ -1282,8 +1328,8 @@ export default function UserDetailsView({
                   width: 30,
                   height: 30,
                   borderRadius: 1.25,
-                  bgcolor: alpha(theme.palette.status?.pending?.main || theme.palette.warning.main, 0.1),
-                  color: theme.palette.status?.pending?.main || theme.palette.warning.main,
+                  bgcolor: alpha(theme.palette.status.pending.main || theme.palette.warning.main, 0.1),
+                  color: theme.palette.status.pending.main || theme.palette.warning.main,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1400,7 +1446,7 @@ export default function UserDetailsView({
                       fontSize: 12.5,
                       color:
                         completenessScore === 100
-                          ? theme.palette.status?.active?.main || theme.palette.success.main
+                          ? theme.palette.status.active.main || theme.palette.success.main
                           : theme.palette.primary.main,
                     }}
                   >
@@ -1423,7 +1469,7 @@ export default function UserDetailsView({
                       borderRadius: 4,
                       background:
                         completenessScore === 100
-                          ? `linear-gradient(90deg, ${theme.palette.status?.active?.main || theme.palette.success.main}, ${theme.palette.success.light || theme.palette.success.main})`
+                          ? `linear-gradient(90deg, ${theme.palette.status.active.main || theme.palette.success.main}, ${theme.palette.success.light || theme.palette.success.main})`
                           : `linear-gradient(90deg, ${theme.palette.primary.main}, ${alpha(theme.palette.primary.main, 0.6)})`,
                     },
                   }}
@@ -1437,7 +1483,7 @@ export default function UserDetailsView({
                         <CheckCircleIcon
                           sx={{
                             fontSize: 13,
-                            color: theme.palette.status?.active?.main || theme.palette.success.main,
+                            color: theme.palette.status.active.main || theme.palette.success.main,
                             flexShrink: 0,
                           }}
                         />
@@ -1467,7 +1513,7 @@ export default function UserDetailsView({
       </Grid>
 
       {/* Rejection Dialog for Drivers */}
-      <Dialog open={rejectOpen} onClose={() => setRejectOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog open={rejectOpen} onClose={() => { setRejectOpen(false); }} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 800 }}>Reject Driver Application</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2, color: theme.palette.text.secondary }}>
@@ -1486,7 +1532,7 @@ export default function UserDetailsView({
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setRejectOpen(false)} color="inherit">
+          <Button onClick={() => { setRejectOpen(false); }} color="inherit">
             Cancel
           </Button>
           <Button onClick={handleConfirmReject} variant="contained" color="error" disabled={!rejectReason.trim()}>
