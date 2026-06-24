@@ -39,7 +39,7 @@ export default function UserDetailsPage() {
           status: "active",
           roles: ["Admin"],
           avatarUrl: "",
-        } as any);
+        });
       } finally {
         setLoading(false);
       }

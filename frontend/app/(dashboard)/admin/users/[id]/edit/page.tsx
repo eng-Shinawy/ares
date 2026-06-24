@@ -81,7 +81,7 @@ export default function EditUserPage() {
           phoneNumber: data.phoneNumber || "",
           dateOfBirth: (data.dateOfBirth as string) || "",
           status: data.status || "active",
-          role: data.roles?.[0] || "",
+          role: data.roles[0] || "",
           profilePhoto: null,
           avatarUrl: (data.avatarUrl as string) || "",
         });
@@ -219,7 +219,7 @@ export default function EditUserPage() {
         <Typography
           variant="caption"
           sx={{ cursor: "pointer", "&:hover": { color: theme.palette.primary.main } }}
-          onClick={() => router.push("/admin/users")}
+          onClick={() => { router.push("/admin/users"); }}
         >
           Users
         </Typography>
@@ -245,7 +245,7 @@ export default function EditUserPage() {
               src={form.profilePhoto ? URL.createObjectURL(form.profilePhoto) : form.avatarUrl}
               sx={{ bgcolor: theme.palette.primary.main, fontWeight: 700, width: 48, height: 48 }}
             >
-              {form.firstName[0]?.toUpperCase() || "U"}
+              {form.firstName.charAt(0).toUpperCase() || "U"}
             </Avatar>
             <Box sx={{ minWidth: 0 }}>
               <Typography
@@ -264,7 +264,7 @@ export default function EditUserPage() {
         <Stack direction="row" spacing={1.5} sx={{ width: { xs: "100%", sm: "auto" }, flexShrink: 0 }}>
           <Button
             variant="outlined"
-            onClick={() => router.back()}
+            onClick={() => { router.back(); }}
             sx={{
               flex: { xs: 1, sm: "unset" },
               borderRadius: 2,
@@ -469,7 +469,7 @@ export default function EditUserPage() {
                   <TextField
                     type="date"
                     value={form.dateOfBirth}
-                    onChange={e => setForm({ ...form, dateOfBirth: e.target.value })}
+                    onChange={e => { setForm({ ...form, dateOfBirth: e.target.value }); }}
                     fullWidth
                     slotProps={{ inputLabel: { shrink: true } }}
                     sx={bigInputSx}
@@ -523,7 +523,7 @@ export default function EditUserPage() {
                 type="file"
                 accept=".jpeg,.jpg,.png,.gif"
                 hidden
-                onChange={e => setForm(prev => ({ ...prev, profilePhoto: e.target.files?.[0] ?? null }))}
+                onChange={e => { setForm(prev => ({ ...prev, profilePhoto: e.target.files?.[0] ?? null })); }}
               />
             </Box>
             <Typography
@@ -581,7 +581,7 @@ export default function EditUserPage() {
               <TextField
                 select
                 value={form.role}
-                onChange={e => setForm(prev => ({ ...prev, role: e.target.value }))}
+                onChange={e => { setForm(prev => ({ ...prev, role: e.target.value })); }}
                 fullWidth
                 size="small"
                 error={Boolean(fieldErrors.role)}
@@ -605,7 +605,7 @@ export default function EditUserPage() {
               <ToggleButtonGroup
                 value={form.status}
                 exclusive
-                onChange={(_, v) => {
+                onChange={(_, v: string) => {
                   if (v) setForm(prev => ({ ...prev, status: v }));
                 }}
                 fullWidth

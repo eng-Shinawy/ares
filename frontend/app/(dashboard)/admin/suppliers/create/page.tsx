@@ -117,7 +117,7 @@ export default function CreateSupplierPage() {
 
   const createSupplierSchema = z
     .object({
-      email: z.string().email({ message: "Invalid email" }),
+      email: z.email({ message: "Invalid email" }),
       password: passwordSchema,
       confirmPassword: z.string(),
       firstName: z.string().min(1, "First name is required"),
@@ -788,7 +788,7 @@ export default function CreateSupplierPage() {
               <ToggleButtonGroup
                 value={form.status}
                 exclusive
-                onChange={(_, v) => {
+                onChange={(_, v: string) => {
                   if (v) setForm(prev => ({ ...prev, status: v }));
                 }}
                 fullWidth
