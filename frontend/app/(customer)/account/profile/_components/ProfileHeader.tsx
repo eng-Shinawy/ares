@@ -58,7 +58,14 @@ export default function ProfileHeader({
         },
       });
 
-      if (!response.ok) throw new Error("Upload failed");
+      if (!response.ok) {
+        setSnackbar({
+          open: true,
+          message: "Failed to upload profile picture. Please try again.",
+          severity: "error",
+        });
+        return;
+      }
 
       const data = (await response.json()) as {
         profilePhotoUrl?: string;
