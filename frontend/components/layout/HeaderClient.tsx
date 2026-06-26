@@ -39,7 +39,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import { toImageUrl } from "@/utils/image-url";
 import ThemeSwitcher from "@/components/ui/ThemeSwitcher";
 import CheckoutIndicator from "@/components/layout/CheckoutIndicator";
-import NotificationsPanel from "@/app/_components/NotificationsPanel";
+import NotificationsPanel from "@/app/[locale]/_components/NotificationsPanel";
 
 interface HeaderClientProps {
   readonly session: Session | null;
@@ -57,6 +57,7 @@ export default function HeaderClient({ session: initialSession }: HeaderClientPr
   const navigationLinks = [
     { label: "Search", href: "/search" },
     { label: "Locations", href: "/locations" },
+    { label: "Categories", href: "/categories" },
     { label: "Offers & Deals", href: "/offers" },
     { label: "About Us", href: "/about" },
   ];
@@ -119,9 +120,18 @@ export default function HeaderClient({ session: initialSession }: HeaderClientPr
     return "/";
   };
 
+  const getProfileHref = () => {
+    if (isDriver) return "/driver/profile";
+    if (isInspector) return "/inspector/profile";
+    return "/account/profile";
+  };
+
   const pathname = usePathname();
   const isDashboardRoute =
-    pathname.startsWith("/admin") || pathname.startsWith("/supplier") || pathname.startsWith("/inspector");
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/supplier") ||
+    pathname.startsWith("/inspector") ||
+    pathname.startsWith("/driver");
 
   if (isDashboardRoute) {
     return null;
@@ -337,7 +347,7 @@ export default function HeaderClient({ session: initialSession }: HeaderClientPr
                     {/* Menu Items */}
                     <MenuItem
                       component={Link}
-                      href="/account/profile"
+                      href={getProfileHref()}
                       onClick={() => {
                         setUserMenuAnchor(null);
                       }}
@@ -533,7 +543,7 @@ export default function HeaderClient({ session: initialSession }: HeaderClientPr
                 <ListItem disablePadding>
                   <ListItemButton
                     component={Link}
-                    href="/profile"
+                    href={getProfileHref()}
                     onClick={() => {
                       setMobileMenuOpen(false);
                     }}
