@@ -718,7 +718,7 @@ public class DashboardService : IDashboardService
             
             var revenue = supplierBookings.Sum(b => b.TotalPrice ?? 0m);
             var commission = supplierBookings.Sum(b => b.CommissionAmount ?? (b.TotalPrice ?? 0m) * 0.15m);
-            var netAmount = supplierBookings.Sum(b => b.SupplierAmount ?? (b.TotalPrice ?? 0m) - commission);
+            var netAmount = revenue - commission;
 
             return new SupplierEarningItemDto(
                 SupplierName: supplierName,
