@@ -1,12 +1,31 @@
 "use client";
 
-import { useState, useCallback, memo, SyntheticEvent } from "react";
-import { Theme } from "@mui/material/styles";
 import {
+  AddRounded as AddIcon,
+  DeleteOutlineRounded as DeleteIcon,
+  EditRounded as EditIcon,
+  LocationOnTwoTone as LocationIcon,
+  MapTwoTone as MapIcon,
+  OpenInNewRounded as OpenInNewIcon,
+  SearchRounded as SearchIcon,
+} from "@mui/icons-material";
+import {
+  Avatar,
+  alpha,
   Box,
-  Typography,
+  Button,
+  Card,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
-  TextField,
+  InputAdornment,
+  Pagination,
+  Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -14,38 +33,21 @@ import {
   TableFooter,
   TableHead,
   TableRow,
-  Paper,
-  Avatar,
-  Chip,
-  Stack,
-  CircularProgress,
-  InputAdornment,
-  Card,
-  Pagination,
+  TextField,
   Tooltip,
-  useTheme,
+  Typography,
   useMediaQuery,
-  alpha,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
+  useTheme,
 } from "@mui/material";
+import Alert from "@mui/material/Alert";
 import Grid from "@mui/material/Grid";
 import Snackbar from "@mui/material/Snackbar";
-import Alert from "@mui/material/Alert";
-import {
-  EditRounded as EditIcon,
-  AddRounded as AddIcon,
-  DeleteOutlineRounded as DeleteIcon,
-  LocationOnTwoTone as LocationIcon,
-  SearchRounded as SearchIcon,
-  MapTwoTone as MapIcon,
-} from "@mui/icons-material";
-import { useRouter } from "@/shared/i18n/routing";
+import type { Theme } from "@mui/material/styles";
 import { useSession } from "next-auth/react";
-import { useLocations, deleteLocation, type Location } from "@/api-clients/locations/locations";
+import { useTranslations } from "next-intl";
+import { memo, type SyntheticEvent, useCallback, useState } from "react";
+import { deleteLocation, type Location, useLocations } from "@/api-clients/locations/locations";
+import { Link, useRouter } from "@/shared/i18n/routing";
 import { toImageUrl } from "@/utils/image-url";
 import { logger } from "@/utils/logger";
 
@@ -56,7 +58,6 @@ interface StatCardProps {
   icon: React.ReactNode;
 }
 
-// ── STAT CARD ──
 const StatCard = memo(function StatCard({ label, value, color, icon }: StatCardProps) {
   return (
     <Card
@@ -94,7 +95,14 @@ const StatCard = memo(function StatCard({ label, value, color, icon }: StatCardP
           <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
             {label}
           </Typography>
-          <Typography variant="h4" sx={{ color, lineHeight: 1.1, fontSize: { xs: "1.6rem", sm: "2.125rem" } }}>
+          <Typography
+            variant="h4"
+            sx={{
+              color,
+              lineHeight: 1.1,
+              fontSize: { xs: "1.6rem", sm: "2.125rem" },
+            }}
+          >
             {value}
           </Typography>
         </Box>
@@ -103,19 +111,37 @@ const StatCard = memo(function StatCard({ label, value, color, icon }: StatCardP
   );
 });
 
-// ── ACTION BUTTONS ──
 const ActionButtons = memo(function ActionButtons({
   locationId,
   onDelete,
   onNavigate,
+  viewOnSearchLabel,
+  editLabel,
+  deleteLabel,
 }: {
   locationId: string;
   onDelete: (id: string) => void;
   onNavigate: (path: string) => void;
+  viewOnSearchLabel: string;
+  editLabel: string;
+  deleteLabel: string;
 }) {
   return (
     <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-      <Tooltip title="Edit">
+      <Tooltip title={viewOnSearchLabel}>
+        <IconButton
+          size="small"
+          component={Link}
+          href={`/search?pickupLocationId=${locationId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{ borderRadius: 2 }}
+        >
+          <OpenInNewIcon sx={{ fontSize: "small" }} />
+        </IconButton>
+      </Tooltip>
+
+      <Tooltip title={editLabel}>
         <IconButton
           size="small"
           onClick={() => {
@@ -127,7 +153,7 @@ const ActionButtons = memo(function ActionButtons({
         </IconButton>
       </Tooltip>
 
-      <Tooltip title="Delete">
+      <Tooltip title={deleteLabel}>
         <IconButton
           onClick={() => {
             onDelete(locationId);
@@ -148,17 +174,24 @@ const ActionButtons = memo(function ActionButtons({
   );
 });
 
-// ── MOBILE CARD ──
 const LocationMobileCard = memo(function LocationMobileCard({
   loc,
   theme,
   onDelete,
   onNavigate,
+  primaryLabel,
+  viewOnSearchLabel,
+  editLabel,
+  deleteLabel,
 }: {
   loc: Location;
   theme: Theme;
   onDelete: (id: string) => void;
   onNavigate: (path: string) => void;
+  primaryLabel: string;
+  viewOnSearchLabel: string;
+  editLabel: string;
+  deleteLabel: string;
 }) {
   return (
     <Paper
@@ -200,9 +233,21 @@ const LocationMobileCard = memo(function LocationMobileCard({
         </Box>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography noWrap sx={{ fontWeight: 700, fontSize: 15 }}>
-            {loc.name}
-          </Typography>
+          <Link href={`/admin/locations/${loc.id}/edit`} style={{ textDecoration: "none" }}>
+            <Typography
+              noWrap
+              sx={{
+                fontWeight: 700,
+                fontSize: 15,
+                color: "primary.main",
+                display: "inline",
+                "&:hover": { textDecoration: "underline" },
+              }}
+            >
+              {loc.name}
+            </Typography>
+          </Link>
+          <br />
           <Typography variant="caption" color="text.secondary" noWrap>
             {loc.addressLine}
           </Typography>
@@ -212,20 +257,28 @@ const LocationMobileCard = memo(function LocationMobileCard({
       <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
         <Chip size="small" label={loc.city} variant="outlined" />
         <Chip size="small" label={loc.country} variant="outlined" />
-        {loc.isPrimary && <Chip size="small" label="Primary" color="primary" sx={{ fontWeight: 600 }} />}
+        {loc.isPrimary && <Chip size="small" label={primaryLabel} color="primary" sx={{ fontWeight: 600 }} />}
       </Stack>
 
-      <ActionButtons locationId={loc.id} onDelete={onDelete} onNavigate={onNavigate} />
+      <ActionButtons
+        locationId={loc.id}
+        onDelete={onDelete}
+        onNavigate={onNavigate}
+        viewOnSearchLabel={viewOnSearchLabel}
+        editLabel={editLabel}
+        deleteLabel={deleteLabel}
+      />
     </Paper>
   );
 });
 
-// ── MAIN PAGE ──
 export default function AdminLocationsPage() {
   const theme = useTheme();
   const router = useRouter();
   const { data: session } = useSession();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const t = useTranslations("dashboardAdmin.locationsForm");
+  const tc = useTranslations("common");
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [openDelete, setOpenDelete] = useState(false);
@@ -235,7 +288,6 @@ export default function AdminLocationsPage() {
     session?.accessToken
   );
 
-  // ── HANDLERS ──
   const handleDelete = useCallback((id: string) => {
     setDeleteId(id);
     setOpenDelete(true);
@@ -252,11 +304,11 @@ export default function AdminLocationsPage() {
       setOpenDelete(false);
       setDeleteId(null);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to delete location";
+      const errorMessage = err instanceof Error ? err.message : t("deleteErrorMessage");
       setErrorMsg(errorMessage);
-      logger.error("Failed to delete location", err);
+      logger.error(t("deleteErrorMessage"), err);
     }
-  }, [deleteId, session, setLocations]);
+  }, [deleteId, session, setLocations, t]);
 
   const handleCloseDelete = useCallback(() => {
     setOpenDelete(false);
@@ -296,7 +348,7 @@ export default function AdminLocationsPage() {
               <SearchIcon sx={{ fontSize: 32, color: "text.disabled" }} />
             </Avatar>
             <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 700 }}>
-              No locations found
+              {t("noLocationsFound")}
             </Typography>
           </Box>
         );
@@ -311,6 +363,10 @@ export default function AdminLocationsPage() {
               theme={theme}
               onDelete={handleDelete}
               onNavigate={handleNavigate}
+              primaryLabel={t("primary")}
+              viewOnSearchLabel={t("viewOnSearch")}
+              editLabel={tc("edit")}
+              deleteLabel={tc("delete")}
             />
           ))}
 
@@ -332,7 +388,15 @@ export default function AdminLocationsPage() {
     }
 
     return (
-      <Paper elevation={0} sx={{ borderRadius: 2, border: "1px solid", borderColor: "divider", overflow: "hidden" }}>
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "divider",
+          overflow: "hidden",
+        }}
+      >
         <TableContainer sx={{ overflowX: "auto" }}>
           <Table sx={{ minWidth: 600 }}>
             <TableHead>
@@ -351,12 +415,12 @@ export default function AdminLocationsPage() {
                   },
                 }}
               >
-                <TableCell sx={{ pl: 6 }}>Location Name</TableCell>
-                <TableCell>City & Country</TableCell>
-                <TableCell>Coordinates</TableCell>
-                <TableCell>Primary</TableCell>
+                <TableCell sx={{ pl: 6 }}>{t("locationNameColumn")}</TableCell>
+                <TableCell>{t("cityAndCountryColumn")}</TableCell>
+                <TableCell>{t("coordinatesColumn")}</TableCell>
+                <TableCell>{t("primaryColumn")}</TableCell>
                 <TableCell align="right" sx={{ pr: 4 }}>
-                  Actions
+                  {tc("actions")}
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -395,14 +459,31 @@ export default function AdminLocationsPage() {
                               component="img"
                               src={toImageUrl(loc.imageUrl)}
                               alt={loc.name}
-                              sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              sx={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
                             />
                           ) : (
                             <LocationIcon color="primary" sx={{ fontSize: "small" }} />
                           )}
                         </Box>
                         <Box>
-                          <Typography sx={{ fontSize: { xs: 13, sm: 15 }, fontWeight: 700 }}>{loc.name}</Typography>
+                          <Link href={`/admin/locations/${loc.id}/edit`} style={{ textDecoration: "none" }}>
+                            <Typography
+                              sx={{
+                                fontSize: { xs: 13, sm: 15 },
+                                fontWeight: 700,
+                                color: "primary.main",
+                                display: "inline",
+                                "&:hover": { textDecoration: "underline" },
+                              }}
+                            >
+                              {loc.name}
+                            </Typography>
+                          </Link>
+                          <br />
                           <Typography variant="caption" color="text.secondary">
                             {loc.addressLine}
                           </Typography>
@@ -427,14 +508,26 @@ export default function AdminLocationsPage() {
 
                     <TableCell>
                       {loc.isPrimary ? (
-                        <Chip size="small" label="Primary" color="primary" sx={{ fontWeight: 600, borderRadius: 2 }} />
+                        <Chip
+                          size="small"
+                          label={t("primary")}
+                          color="primary"
+                          sx={{ fontWeight: 600, borderRadius: 2 }}
+                        />
                       ) : (
                         "-"
                       )}
                     </TableCell>
 
                     <TableCell align="right">
-                      <ActionButtons locationId={loc.id} onDelete={handleDelete} onNavigate={handleNavigate} />
+                      <ActionButtons
+                        locationId={loc.id}
+                        onDelete={handleDelete}
+                        onNavigate={handleNavigate}
+                        viewOnSearchLabel={t("viewOnSearch")}
+                        editLabel={tc("edit")}
+                        deleteLabel={tc("delete")}
+                      />
                     </TableCell>
                   </TableRow>
                 ))
@@ -454,7 +547,7 @@ export default function AdminLocationsPage() {
                         <SearchIcon sx={{ fontSize: 32, color: "text.disabled" }} />
                       </Avatar>
                       <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 700 }}>
-                        No locations found
+                        {t("noLocationsFound")}
                       </Typography>
                     </Box>
                   </TableCell>
@@ -462,11 +555,10 @@ export default function AdminLocationsPage() {
               )}
             </TableBody>
 
-            {/* PAGINATION desktop (moved into TableFooter for semantic markup) */}
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={3}>
-                  <Typography variant="caption">Showing {locations.length} locations</Typography>
+                  <Typography variant="caption">{t("showingCount", { count: locations.length })}</Typography>
                 </TableCell>
                 <TableCell colSpan={2} align="right">
                   <Pagination
@@ -489,7 +581,6 @@ export default function AdminLocationsPage() {
 
   return (
     <Box sx={{ p: { xs: 1.5, sm: 3, md: 4 }, maxWidth: 1300, mx: "auto" }}>
-      {/* HEADER */}
       <Stack
         direction={{ xs: "row", sm: "row" }}
         sx={{
@@ -499,11 +590,17 @@ export default function AdminLocationsPage() {
         }}
       >
         <Box>
-          <Typography variant="h4" sx={{ fontSize: { xs: "1.5rem", sm: "1.6rem", md: "2rem" }, fontWeight: 800 }}>
-            Locations Management
+          <Typography
+            variant="h4"
+            sx={{
+              fontSize: { xs: "1.5rem", sm: "1.6rem", md: "2rem" },
+              fontWeight: 800,
+            }}
+          >
+            {t("pageTitle")}
           </Typography>
           <Typography color="text.secondary" variant="body2" sx={{ paddingInlineStart: { xs: 0.6, sm: 1.2 } }}>
-            Manage pick-up and drop-off locations
+            {t("pageSubtitle")}
           </Typography>
         </Box>
 
@@ -531,15 +628,14 @@ export default function AdminLocationsPage() {
           }}
         >
           <AddIcon sx={{ fontSize: "small" }} />
-          Add New Location
+          {t("addNewLocation")}
         </Box>
       </Stack>
 
-      {/* STATS */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 4 }}>
           <StatCard
-            label="Total Locations"
+            label={t("totalLocations")}
             value={locations.length}
             color={theme.palette.primary.main}
             icon={<MapIcon />}
@@ -547,17 +643,21 @@ export default function AdminLocationsPage() {
         </Grid>
       </Grid>
 
-      {/* FILTER */}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 3 }}>
         <TextField
           fullWidth
-          placeholder="Search by city, name, or country..."
+          placeholder={t("searchPlaceholder")}
           value={search}
           onChange={e => {
             setSearch(e.target.value);
           }}
           size="small"
-          sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2, bgcolor: "background.paper" } }}
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 2,
+              bgcolor: "background.paper",
+            },
+          }}
           slotProps={{
             input: {
               startAdornment: (
@@ -570,25 +670,25 @@ export default function AdminLocationsPage() {
         />
       </Stack>
 
-      {/* TABLE / MOBILE CARDS */}
       {renderLocations()}
 
-      {/* DELETE DIALOG */}
       <Dialog
         open={openDelete}
         onClose={handleCloseDelete}
         fullWidth
-        slotProps={{ paper: { sx: { borderRadius: 2, p: 1, mx: { xs: 2, sm: "auto" } } } }}
+        slotProps={{
+          paper: { sx: { borderRadius: 2, p: 1, mx: { xs: 2, sm: "auto" } } },
+        }}
       >
-        <DialogTitle sx={{ fontWeight: 700 }}>Delete Location</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>{t("deleteTitle")}</DialogTitle>
         <DialogContent>
-          Are you sure you want to delete this location?
+          {t("deleteConfirmation")}
           <br />
-          <strong>This action cannot be undone.</strong>
+          <strong>{t("deleteCannotBeUndone")}</strong>
         </DialogContent>
         <DialogActions sx={{ flexWrap: "wrap", gap: 1, pb: 2, px: 2 }}>
           <Button onClick={handleCloseDelete} variant="outlined" sx={{ borderRadius: 2, flex: { xs: 1, sm: "none" } }}>
-            Cancel
+            {tc("cancel")}
           </Button>
           <Button
             onClick={(e: SyntheticEvent) => {
@@ -597,20 +697,26 @@ export default function AdminLocationsPage() {
             }}
             color="error"
             variant="contained"
-            sx={{ borderRadius: 2, fontWeight: 700, flex: { xs: 1, sm: "none" } }}
+            sx={{
+              borderRadius: 2,
+              fontWeight: 700,
+              flex: { xs: 1, sm: "none" },
+            }}
           >
-            Delete
+            {tc("delete")}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* ERROR SNACKBAR */}
       <Snackbar
         open={!!errorMsg}
         autoHideDuration={4000}
         onClose={handleCloseError}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        sx={{ maxWidth: { xs: "calc(100% - 32px)", sm: "auto" }, left: { xs: 16, sm: "auto" } }}
+        sx={{
+          maxWidth: { xs: "calc(100% - 32px)", sm: "auto" },
+          left: { xs: 16, sm: "auto" },
+        }}
       >
         <Alert severity="error" onClose={handleCloseError}>
           {errorMsg}
