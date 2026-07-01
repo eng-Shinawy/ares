@@ -609,11 +609,13 @@ public class DashboardService : IDashboardService
                     "bank" => "Bank Transfer",
                     _ => char.ToUpper(rawMethod[0]) + rawMethod[1..]
                 };
+                var amount = g.Sum(x => x.Amount);
                 return new PaymentMethodSummaryDto(
                     Method: displayName,
                     Count: g.Count(),
-                    Amount: g.Sum(x => x.Amount),
-                    Percentage: totalPaymentsAmount > 0 ? Math.Round((g.Sum(x => x.Amount) / totalPaymentsAmount) * 100m, 2) : 0m
+                    PaidAmount: amount,
+                    Amount: amount,
+                    Percentage: totalPaymentsAmount > 0 ? Math.Round((amount / totalPaymentsAmount) * 100m, 2) : 0m
                 );
             })
             .ToList();

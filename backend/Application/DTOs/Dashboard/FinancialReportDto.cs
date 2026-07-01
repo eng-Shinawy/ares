@@ -35,6 +35,7 @@ namespace Backend.Application.DTOs.Dashboard
     public record PaymentMethodSummaryDto(
         string Method,
         int Count,
+        decimal PaidAmount,
         decimal Amount,
         decimal Percentage
     );
