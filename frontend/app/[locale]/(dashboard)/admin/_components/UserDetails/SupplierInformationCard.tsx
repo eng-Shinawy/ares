@@ -1,4 +1,3 @@
-
 import { Paper, Box, Grid, useTheme } from "@mui/material";
 import { SupplierDetails } from "@/api-clients/users/users";
 import { SectionLabel, FieldRow } from "../UserDetailsView";

@@ -146,7 +146,8 @@ namespace Backend.Api.Controllers
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            var resultItems = items.Select(x => {
+            var resultItems = items.Select(x =>
+            {
                 var latestDiscount = x.LatestDiscount;
                 bool isActiveOffer = latestDiscount != null && latestDiscount.IsActive && latestDiscount.EndDate >= now;
                 bool isExpiredOffer = latestDiscount != null && (!latestDiscount.IsActive || latestDiscount.EndDate < now);
@@ -244,10 +245,11 @@ namespace Backend.Api.Controllers
                     c.CommissionPercentage,
                     c.IsActive,
                     c.ImageUrl,
-                    Vehicles = _context.Vehicles.Where(v => v.CategoryId == c.Id).Select(v => new { 
-                        v.Id, 
-                        v.Make, 
-                        v.Model, 
+                    Vehicles = _context.Vehicles.Where(v => v.CategoryId == c.Id).Select(v => new
+                    {
+                        v.Id,
+                        v.Make,
+                        v.Model,
                         v.LicensePlate,
                         v.PricePerDay,
                         v.Status,
@@ -258,7 +260,8 @@ namespace Backend.Api.Controllers
                     BookingCount = _context.Bookings.Count(b => b.Vehicle!.CategoryId == c.Id),
                     Revenue = _context.Payments.Where(p => p.Booking!.Vehicle!.CategoryId == c.Id && p.Status == "Captured").Sum(p => (decimal?)p.Amount) ?? 0m,
                     ActivePromotion = c.DiscountVehicleCategories
-                        .Select(dvc => new {
+                        .Select(dvc => new
+                        {
                             Id = dvc.Discount!.Id,
                             Name = dvc.Discount.Code,
                             DiscountPercentage = dvc.Discount.DiscountValue,
@@ -269,7 +272,8 @@ namespace Backend.Api.Controllers
                         })
                         .OrderByDescending(x => x.IsActiveOffer)
                         .ThenByDescending(x => x.CreatedAt)
-                        .Select(x => new {
+                        .Select(x => new
+                        {
                             x.Id,
                             x.Name,
                             x.DiscountPercentage,

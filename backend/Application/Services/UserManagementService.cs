@@ -220,7 +220,7 @@ public class UserManagementService : IUserManagementService
         {
             userDtos = await _supplierService.EnrichSuppliersAsync(userDtos, cancellationToken);
         }
-        
+
         if (filter != null && !string.IsNullOrWhiteSpace(filter.Role) && filter.Role.Equals("Driver", StringComparison.OrdinalIgnoreCase) && _driverService != null)
         {
             userDtos = await _driverService.EnrichDriversAsync(userDtos, cancellationToken);
@@ -276,7 +276,7 @@ public class UserManagementService : IUserManagementService
             var enrichedList = await _supplierService.EnrichSuppliersAsync(new List<UserManagementDto> { userDto }, cancellationToken);
             userDto = enrichedList.FirstOrDefault() ?? userDto;
         }
-        
+
         if (roles.Contains("Driver", StringComparer.OrdinalIgnoreCase) && _driverService != null)
         {
             var enrichedList = await _driverService.EnrichDriversAsync(new List<UserManagementDto> { userDto }, cancellationToken);
