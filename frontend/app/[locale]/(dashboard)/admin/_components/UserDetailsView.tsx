@@ -113,7 +113,7 @@ export interface UserDetailsViewProps {
     readonly totalTrips?: number;
     readonly averageRating?: number;
     readonly availability?: string;
-    
+
     // New Role Specific Details (Composition)
     readonly driverDetails?: {
       readonly licenseNumber?: string | null;
@@ -1654,8 +1654,8 @@ export default function UserDetailsView({
       <RoleSpecificInformation
         userType={userType}
         roles={data.roles as string[] | undefined}
-        driverDetails={data.driverDetails}
-        supplierDetails={data.supplierDetails}
+        driverDetails={data.driverDetails as any}
+        supplierDetails={data.supplierDetails as any}
         t={t}
       />
 

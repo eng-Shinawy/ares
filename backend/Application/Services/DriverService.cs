@@ -39,13 +39,13 @@ public class DriverService : IDriverService
         // 1. Batch query Driver Profiles for LicenseNumber, Expiry and Availability
         var profiles = await _context.DriverProfiles
             .Where(dp => userIds.Contains(dp.UserId))
-            .Select(dp => new 
-            { 
-                dp.Id, 
-                dp.UserId, 
-                dp.LicenseNumber, 
+            .Select(dp => new
+            {
+                dp.Id,
+                dp.UserId,
+                dp.LicenseNumber,
                 dp.LicenseExpiryDate,
-                dp.Availability 
+                dp.Availability
             })
             .ToDictionaryAsync(dp => dp.UserId, cancellationToken);
 
@@ -56,7 +56,7 @@ public class DriverService : IDriverService
         // or we could query Bookings with Completed status. Using DriverReviews as per AdminDriverService pattern)
         var tripCounts = new Dictionary<Guid, int>();
         var assignedCounts = new Dictionary<Guid, int>();
-        
+
         if (profileIds.Any())
         {
             tripCounts = await _context.DriverReviews
@@ -64,7 +64,7 @@ public class DriverService : IDriverService
                 .GroupBy(dr => dr.DriverProfileId)
                 .Select(g => new { ProfileId = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.ProfileId, x => x.Count, cancellationToken);
-                
+
             assignedCounts = await _context.Bookings
                 .Where(b => b.AssignedDriverProfileId != null && profileIds.Contains(b.AssignedDriverProfileId.Value))
                 .GroupBy(b => b.AssignedDriverProfileId!.Value)

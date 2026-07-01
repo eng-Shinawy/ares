@@ -1,4 +1,3 @@
-import React from "react";
 import { Paper, Box, Grid, useTheme } from "@mui/material";
 import { DriverDetails } from "@/api-clients/users/users";
 import { SectionLabel, FieldRow } from "../UserDetailsView";
@@ -31,7 +30,7 @@ export default function DriverInformationCard({ driverDetails, t }: DriverInform
     >
       <Box sx={{ p: 3, borderBottom: "1px solid", borderColor: theme.palette.divider }}>
         <SectionLabel>{t("details.driverInformation") || "Driver Information"}</SectionLabel>
-        
+
         <Box sx={{ mt: 2 }}>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 6 }}>

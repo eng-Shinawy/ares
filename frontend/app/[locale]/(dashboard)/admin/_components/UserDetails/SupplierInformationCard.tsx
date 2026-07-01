@@ -1,4 +1,3 @@
-import React from "react";
 import { Paper, Box, Grid, useTheme } from "@mui/material";
 import { SupplierDetails } from "@/api-clients/users/users";
 import { SectionLabel, FieldRow } from "../UserDetailsView";
@@ -31,7 +30,7 @@ export default function SupplierInformationCard({ supplierDetails, t }: Supplier
     >
       <Box sx={{ p: 3, borderBottom: "1px solid", borderColor: theme.palette.divider }}>
         <SectionLabel>{t("details.supplierInformation") || "Supplier Information"}</SectionLabel>
-        
+
         <Box sx={{ mt: 2 }}>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 6 }}>
